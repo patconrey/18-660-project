@@ -26,7 +26,7 @@ def main(cfg: DictConfig):
 
     model = MLP(**cfg.model.args)
     writer = SummaryWriter(log_dir=os.path.join(cfg.savedir, "tf"))
-    scheme = FedNova(model=model,
+    scheme = FedAvg(model=model,
 						optimizer=SGD,
 						optimizer_args=cfg.optim.args,
 						num_clients=cfg.K,
