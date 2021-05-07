@@ -11,6 +11,7 @@ from models.client import FedAvgClient as Client
 from models.server import FedAvgCenterServer as CenterServer
 
 from datasets.mnist import MnistLocalDataset
+from datasets.generate_synthetic_data import create_synthetic_lr_datasets
 from utils.data import get_mnist_data
 
 
@@ -23,6 +24,7 @@ class FedAvg():
                  batchsize=50,
                  fraction=1,
                  iid=False,
+                 dataset='mnist',
                  should_use_heterogeneous_data=False,
                  should_use_heterogeneous_E=False,
                  local_epoch=1,
@@ -37,18 +39,19 @@ class FedAvg():
         self.batchsize = batchsize  # B
         self.fraction = fraction  # C, 0 < C <= 1
         self.local_epoch = local_epoch  # E
-
-        local_datasets, test_dataset = self.create_mnist_datasets(
-            num_clients,
-            iid=iid,
-            should_use_heterogeneous_data=should_use_heterogeneous_data)
-            
-        local_dataloaders = [
-            DataLoader(dataset,
-                       num_workers=0,
-                       batch_size=batchsize,
-                       shuffle=True) for dataset in local_datasets
-        ]
+        self.dataset = dataset
+        if dataset == 'mnist':
+            local_datasets, test_dataset = self.create_mnist_datasets(
+                num_clients,
+                iid=iid,
+                should_use_heterogeneous_data=should_use_heterogeneous_data)
+        elif dataset == 'synthetic':
+            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients, 1, 1, iid)
+        local_dataloaders = [DataLoader(dataset,
+                            num_workers=0,
+                            batch_size=batchsize,
+                            shuffle=True) for dataset in local_datasets
+                            ]
 
         self.clients = [
             Client(k,
@@ -167,3 +170,5 @@ class FedAvg():
         test_dataset = MnistLocalDataset(test_img, test_label, client_id=-1)
 
         return local_datasets, test_dataset
+
+    

@@ -11,6 +11,7 @@ from models.client import FedAvgClient as Client
 from models.server import FedNovaCenterServer as CenterServer
 
 from datasets.mnist import MnistLocalDataset
+from datasets.generate_synthetic_data import create_synthetic_lr_datasets
 from utils.data import get_mnist_data
 
 
