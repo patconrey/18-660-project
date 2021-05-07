@@ -42,13 +42,13 @@ class FedAvgCenterServer(CenterServer):
         test_loss = 0
         correct = 0
         with torch.no_grad():
-            for img, target in self.dataloader:
-                img = img.to(self.device)
-                target = target.to(self.device)
-                logits = self.model(img)
-                test_loss += loss_fn(logits, target).item()
+            for features, label in self.dataloader:
+                features = features.to(self.device)
+                label = label.to(self.device)
+                logits = self.model(features)
+                test_loss += loss_fn(logits, label).item()
                 pred = logits.argmax(dim=1, keepdim=True)
-                correct += pred.eq(target.view_as(pred)).sum().item()
+                correct += pred.eq(label.view_as(pred)).sum().item()
 
         self.model.to("cpu")
         test_loss = test_loss / len(self.dataloader)

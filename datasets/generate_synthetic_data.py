@@ -45,11 +45,11 @@ class SyntheticDataGenerator(object):
         iid_data = []
         for client_id in np.arange(len(client_samples)):
             n_samples = client_samples[client_id]
-            X = self.rng.multivariate_normal(v, self.feature_covariance_matrix, size=n_samples)
+            X = self.rng.multivariate_normal(v, self.feature_covariance_matrix, size=n_samples).transpose()
             # size X should be n_features * n_samples
-            y = np.argmax(softmax(((W@X)+(b@np.ones(1,n_samples)))), axis=0)
+            y = np.argmax(softmax(((W@X)+(b@np.ones((1,n_samples))))), axis=0)
             dataset = SyntheticLocalDataset(X, y, W, b, client_id)
-            iid_data.append(data)
+            iid_data.append(dataset)
         return iid_data
 
 class SyntheticLocalDataset(object):
@@ -77,16 +77,20 @@ def create_synthetic_lr_datasets(num_clients=30,
     # states. We can continue to tweak this.
     zipf_param = 2
     client_samples = np.random.zipf(zipf_param, size=(100*num_clients,))
+    # from matplotlib import pyplot as plt
+    # plt.hist(client_samples, bins=np.arange(min(client_samples), max(client_samples)+1,))
+    # plt.show()
     client_samples = np.sort(client_samples)[-num_clients:]
     # half the number of test samples as total training? more? less?
     n_test_samples = int(client_samples.sum()/2)
     data_generator = SyntheticDataGenerator(alpha, beta)
     
     if iid:
+        client_samples = np.append(client_samples, n_test_samples)
         local_datasets = data_generator.generate_iid_client_data(client_samples)
         # not sure how to make the test dataset?
-        test_dataset = data_generator.generate_iid_client_data([n_test_samples])
-        test_dataset = test_dataset[0]
+        test_dataset = local_datasets[-1]
+        local_datasets = local_datasets[:-1]
         test_dataset.client_id = -1
     else:
         local_datasets = []
