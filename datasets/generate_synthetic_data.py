@@ -11,17 +11,15 @@ import torch
 # Approach to create synthetic data discribed in section 5.1
 
 def softmax(x):
-    return np.exp(x)/np.sum(np.exp(x), axis=0)
+    return npx.exp(x)/np.sum(np.exp(x), axis=0)
 
-def calc_labels(W,X):
-    Z = torch.mm(torch.Tensor(W),torch.Tensor(X))
+def calc_labels(W, X, b):
+    Z = torch.mm(torch.Tensor(W),torch.Tensor(X)) + torch.Tensor(b)
     Zexp = torch.exp(Z)
     Zexp_sums = torch.transpose(torch.sum(Zexp, axis=0).unsqueeze(1), 0, 1)
     labels = torch.argmax((Zexp / Zexp_sums),dim=0)
-    labels_onehot = torch.nn.functional.one_hot(labels, num_classes=W.shape[0])
-    # labels_onehot = np.zeros((Z.shape[0], Z.shape[1]))
-    # labels_onehot[labels, np.arange(Z.shape[1])] = 1
-    return labels_onehot
+    # labels_onehot = torch.nn.functional.one_hot(labels, num_classes=W.shape[0])
+    return labels
 
 class SyntheticDataGenerator(object):
     def __init__(self, alpha=1, beta=1, n_features=60, n_classes=10):
@@ -40,43 +38,33 @@ class SyntheticDataGenerator(object):
         B = self.rng.normal(0, self.beta)
         v = self.rng.normal(B, 1, (self.n_features,))
         X = self.rng.multivariate_normal(v, self.feature_covariance_matrix, size=n_samples).transpose()
-        bias_row = np.ones((1,n_samples))
-        X = np.concatenate((bias_row, X), axis=0)
-        # size X should be n_features * n_samples
         u = self.rng.normal(0, self.alpha)
         W = self.rng.normal(u, 1, (self.n_classes, self.n_features))
         b = self.rng.normal(u, 1, (self.n_classes,1))
-        W = np.concatenate((b,W),axis=1)
-        labels = calc_labels(W,X)
-        dataset = SyntheticLocalDataset(X, labels, W, client_id)
+        labels = calc_labels(W, X, b)
+        dataset = SyntheticLocalDataset(X, labels, W, b, client_id)
         return dataset
 
     def generate_iid_client_data(self, client_samples):
         u = self.rng.normal(0, self.alpha)
         W = self.rng.normal(u, 1, (self.n_classes, self.n_features))
         b = self.rng.normal(u, 1, (self.n_classes,1))
-        W = np.concatenate((b,W),axis=1)
         v = np.zeros((self.n_features,))
         iid_data = []
         for client_id in np.arange(len(client_samples)):
             n_samples = client_samples[client_id]
             X = self.rng.multivariate_normal(v, self.feature_covariance_matrix, size=n_samples).transpose()
-            bias_row = np.ones((1,n_samples))
-            X = np.concatenate((bias_row, X), axis=0)
-            # size X should be n_features * n_samples
-            # labels = np.argmax(softmax((W@X)), axis=0)
-            # labels_onehot = np.zeros((self.n_classes, n_samples))
-            # labels_onehot[labels, np.arange(n_samples)] = 1
-            labels = calc_labels(W,X)
-            dataset = SyntheticLocalDataset(X, labels, W, client_id)
+            labels = calc_labels(W, X, b)
+            dataset = SyntheticLocalDataset(X, labels, W, b, client_id)
             iid_data.append(dataset)
         return iid_data
 
 class SyntheticLocalDataset(object):
-    def __init__(self, features, labels, W, client_id):
+    def __init__(self, features, labels, W, b, client_id):
         self.features = features
         self.labels = labels
         self.W_true = W
+        self.b_true = b
         self.client_id = client_id
 
     def __getitem__(self, index):
@@ -90,19 +78,21 @@ class SyntheticLocalDataset(object):
 def create_synthetic_lr_datasets(num_clients=30,
                                  alpha=1,
                                  beta=1,
+                                 n_features=60,
+                                 n_classes=10,
                                  iid=False):
     # This is my best attempt so far at generating the number of samples for
     # each client in a distribution that "follows a power law", as the paper
     # states. We can continue to tweak this.
     zipf_param = 2
-    client_samples = np.random.zipf(zipf_param, size=(100*num_clients,))
+    client_samples = np.random.zipf(zipf_param, size=(500*num_clients,))
     client_samples = np.sort(client_samples)[-num_clients:]
     # from matplotlib import pyplot as plt
     # plt.hist(client_samples, bins=np.arange(min(client_samples), max(client_samples)+1,))
     # plt.show()
     # half the number of test samples as total training? more? less?
     n_test_samples = int(client_samples.sum()/2)
-    data_generator = SyntheticDataGenerator(alpha, beta)
+    data_generator = SyntheticDataGenerator(alpha, beta, n_features, n_classes)
     
     if iid:
         client_samples = np.append(client_samples, n_test_samples)

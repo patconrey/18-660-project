@@ -12,4 +12,6 @@ class LR(nn.Module):
         self.activation = nn.Softmax(dim=1)
 
     def forward(self, x):
+        # I've read that pytorch cross-entropy loss expects raw logits, even for LR
+        #return self.linear(x.float())
         return self.activation(self.linear(x.float()))

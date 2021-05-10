@@ -46,7 +46,7 @@ class FedNova():
                 iid=iid,
                 should_use_heterogeneous_data=should_use_heterogeneous_data)
         elif dataset == 'synthetic':
-            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients, 1, 1, iid)
+            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients, 1, 1, 60, 10, iid)
         else:
             raise Exception("Unrecognized dataset argument")
 
