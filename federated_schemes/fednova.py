@@ -24,6 +24,7 @@ class FedNova():
                  batchsize=50,
                  fraction=1,
                  iid=False,
+                 dataset='mnist',
                  should_use_heterogeneous_data=False,
                  should_use_heterogeneous_E=False,
                  local_epoch=1,
@@ -39,11 +40,16 @@ class FedNova():
         self.fraction = fraction  # C, 0 < C <= 1
         self.local_epoch = local_epoch  # E
 
-        local_datasets, test_dataset = self.create_mnist_datasets(
-            num_clients,
-            iid=iid,
-            should_use_heterogeneous_data=should_use_heterogeneous_data)
-            
+        if dataset == 'mnist':
+            local_datasets, test_dataset = self.create_mnist_datasets(
+                num_clients,
+                iid=iid,
+                should_use_heterogeneous_data=should_use_heterogeneous_data)
+        elif dataset == 'synthetic':
+            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients, 1, 1, iid)
+        else:
+            raise Exception("Unrecognized dataset argument")
+
         local_dataloaders = [
             DataLoader(dataset,
                        num_workers=0,

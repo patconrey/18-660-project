@@ -43,6 +43,20 @@ def main(cfg: DictConfig):
                         local_epoch_max=cfg.client_heterogeneity.E_max,
                         should_use_heterogeneous_data=cfg.client_heterogeneity.should_use_heterogeneous_data,
                         writer=writer)
+    # scheme = FedNova(model=model,
+    #                 optimizer=SGD,
+    #                 optimizer_args=cfg.optim.args,
+    #                 num_clients=cfg.K,
+    #                 batchsize=cfg.B,
+    #                 fraction=cfg.C,
+    #                 iid=cfg.client_heterogeneity.iid,
+    #                 should_use_heterogeneous_data=cfg.client_heterogeneity.should_use_heterogeneous_data,
+    #                 should_use_heterogeneous_E=should_use_heterogeneous_E,
+    #                 local_epoch=cfg.client_heterogeneity.E,
+    #                 local_epoch_min=cfg.client_heterogeneity.E_min,
+    #                 local_epoch_max=cfg.client_heterogeneity.E_max,
+    #                 device="cpu",
+    #                 writer=None)
 
     scheme.fit(cfg.n_round)
 

@@ -11,7 +11,7 @@ C: 0.3
 B: 50
 
 client_heterogeneity:
-  iid: True
+  iid: False
   should_use_heterogeneous_data: True
   should_use_heterogeneous_E: False
   # If should_use_heterogeneous_E == True, we'll use E_min and E_max.

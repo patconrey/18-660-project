@@ -47,6 +47,9 @@ class FedAvg():
                 should_use_heterogeneous_data=should_use_heterogeneous_data)
         elif dataset == 'synthetic':
             (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients, 1, 1, iid)
+        else:
+            raise Exception("Unrecognized dataset argument")
+        
         local_dataloaders = [DataLoader(dataset,
                             num_workers=0,
                             batch_size=batchsize,
