@@ -3,5 +3,5 @@ optim:
   classname: SGD
   args:
     lr: 0.01
-    momentum: 0.9
+    momentum: 0
     weight_decay: 1e-5

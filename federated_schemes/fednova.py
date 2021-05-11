@@ -11,6 +11,7 @@ from models.client import FedAvgClient as Client
 from models.server import FedNovaCenterServer as CenterServer
 
 from datasets.mnist import MnistLocalDataset
+from datasets.generate_synthetic_data import create_synthetic_lr_datasets
 from utils.data import get_mnist_data
 
 
@@ -23,6 +24,7 @@ class FedNova():
                  batchsize=50,
                  fraction=1,
                  iid=False,
+                 dataset='mnist',
                  should_use_heterogeneous_data=False,
                  should_use_heterogeneous_E=False,
                  local_epoch=1,
@@ -38,11 +40,22 @@ class FedNova():
         self.fraction = fraction  # C, 0 < C <= 1
         self.local_epoch = local_epoch  # E
 
-        local_datasets, test_dataset = self.create_mnist_datasets(
-            num_clients,
-            iid=iid,
-            should_use_heterogeneous_data=should_use_heterogeneous_data)
-            
+        if dataset == 'mnist':
+            local_datasets, test_dataset = self.create_mnist_datasets(
+                num_clients,
+                iid=iid,
+                should_use_heterogeneous_data=should_use_heterogeneous_data)
+        elif dataset == 'synthetic':
+            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients,
+                    alpha=1,
+                    beta=1,
+                    n_features=60,
+                    n_classes=10,
+                    should_use_heterogeneous_data=should_use_heterogeneous_data,
+                    iid=iid)
+        else:
+            raise Exception("Unrecognized dataset argument")
+
         local_dataloaders = [
             DataLoader(dataset,
                        num_workers=0,
@@ -88,13 +101,19 @@ class FedNova():
     def train_step(self):
         self.send_model()
         n_sample = max(int(self.fraction * self.num_clients), 1)
-        sample_set = np.random.randint(0, self.num_clients, n_sample)
+        # we can choose to sample with our without replacement - randint replaces, choice does not
+        #sample_set = np.random.randint(0, self.num_clients, n_sample)
+        sample_set = np.random.choice(np.arange(self.num_clients), size=n_sample, replace=False)
+        # Scaling factor is based on Footnote 1 of Wang et al:
+        # "weighted averaging local changes, where the weight of client 
+        #  i is re-scaled to (p_i m)/q." m is total samples, q is # clients samples, m is total # samples
+        scaling_factor = self.num_clients*n_sample
         for k in iter(sample_set):
             self.clients[k].client_update(
                 self.optimizer,
                 self.optimizer_args,
                 self.loss_fn)
-        self.center_server.aggregation(self.clients, self.aggregation_weights)
+        self.center_server.aggregation(self.clients, self.aggregation_weights, sample_set, scaling_factor)
 
     def send_model(self):
         for client in self.clients:

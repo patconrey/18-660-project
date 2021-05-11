@@ -51,15 +51,16 @@ class FedAvgClient(Client):
             epochs_to_perform = random.randint(self.local_epoch_min, self.local_epoch_max)
 
         self.epochs_to_perform = epochs_to_perform
-        
+        #print("CLIENT %d" % self.client_id)
         for i in range(epochs_to_perform):
+            #print("EPOCH %d" % i)
             for img, target in self.dataloader:
                 img = img.to(self.device)
                 target = target.to(self.device)
                 optimizer.zero_grad()
                 logits = self.model(img)
                 loss = loss_fn(logits, target)
-
+                #print(loss.item())
                 loss.backward()
                 optimizer.step()
         self.model.to("cpu")

@@ -1,0 +1,6 @@
+model:
+  type: lr
+  classname: LR
+  args:
+    n_features: 60
+    n_classes: 10
