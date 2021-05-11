@@ -90,7 +90,7 @@ class FedAvg():
 
     def fit(self, num_round):
         self._round = 0
-        self.result = {'loss': [], 'accuracy': []}
+        self.result = {'loss': [], 'accuracy': [], 'train_loss': [], 'train_accuracy': []}
         self.validation_step()
         for t in range(num_round):
             self._round = t + 1
@@ -107,11 +107,24 @@ class FedAvg():
         # "weighted averaging local changes, where the weight of client 
         #  i is re-scaled to (p_i m)/q." m is total samples, q is # clients samples, m is total # samples
         scaling_factor = self.num_clients/n_sample
+        train_loss = 0
+        train_correct = 0
+        num_samples_train = np.sum([len(self.clients[k]) for k in sample_set])
         for k in iter(sample_set):
             self.clients[k].client_update(
                 self.optimizer,
                 self.optimizer_args,
                 self.loss_fn)
+            train_loss += self.clients[k].most_recent_avg_loss*len(self.clients[k])
+            train_correct += self.clients[k].most_recent_num_correct
+        
+        train_loss /= num_samples_train
+        train_accuracy = train_correct/num_samples_train * 100
+        if self.writer is not None:
+            self.writer.add_scalar("test/loss", train_loss, self._round)
+            self.writer.add_scalar("test/accuracy", train_accuracy, self._round)
+        self.result['train_loss'].append(train_loss)
+        self.result['train_accuracy'].append(train_accuracy)
         self.center_server.aggregation(self.clients, self.aggregation_weights, sample_set, scaling_factor)
 
     def send_model(self):
@@ -120,8 +133,14 @@ class FedAvg():
 
     def validation_step(self):
         test_loss, accuracy = self.center_server.validation(self.loss_fn)
+        if self._round != 0:
+            train_loss = self.result['train_loss'][-1]
+            train_accuracy = self.result['train_accuracy'][-1]
+        else:
+            train_loss = test_loss
+            train_accuracy = accuracy
         log.info(
-            f"[Round: {self._round: 04}] Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%"
+            f"[Round: {self._round: 04}] Train set: Average loss: {train_loss:.4f} Accuracy: {train_accuracy:.2f} // Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%"
         )
         if self.writer is not None:
             self.writer.add_scalar("val/loss", test_loss, self._round)

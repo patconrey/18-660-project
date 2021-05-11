@@ -19,6 +19,8 @@ class Client:
         self.epochs_to_perform = local_epoch # This property will change per communication round if we're using heterogeneous E
         self.local_epoch_max = local_epoch_max
         self.local_epoch_min = local_epoch_min
+        self.most_recent_avg_loss = 0
+        self.most_recent_num_correct = 0
 
     @property
     def model(self):
@@ -63,4 +65,22 @@ class FedAvgClient(Client):
                 #print(loss.item())
                 loss.backward()
                 optimizer.step()
+
+        # evaluate loss and accurary after training finished (for tracking total training loss/accuracy)
+        self.model.eval()
+        train_loss = 0
+        train_correct = 0
+        for img, target in self.dataloader:
+            img = img.to(self.device)
+            target = target.to(self.device)
+            optimizer.zero_grad()
+            logits = self.model(img)
+            loss = loss_fn(logits, target)
+            train_loss += loss.item()
+            pred = logits.argmax(dim=1, keepdim=True)
+            train_correct += pred.eq(target.view_as(pred)).sum().item()
+        
+        self.most_recent_avg_loss = train_loss/len(self.dataloader)
+        self.most_recent_num_correct = train_correct
+
         self.model.to("cpu")
