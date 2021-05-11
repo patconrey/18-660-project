@@ -46,7 +46,13 @@ class FedNova():
                 iid=iid,
                 should_use_heterogeneous_data=should_use_heterogeneous_data)
         elif dataset == 'synthetic':
-            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients, 1, 1, 60, 10, iid)
+            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients,
+                    alpha=1,
+                    beta=1,
+                    n_features=60,
+                    n_classes=10,
+                    should_use_heterogeneous_data=should_use_heterogeneous_data,
+                    iid=iid)
         else:
             raise Exception("Unrecognized dataset argument")
 
@@ -95,14 +101,19 @@ class FedNova():
     def train_step(self):
         self.send_model()
         n_sample = max(int(self.fraction * self.num_clients), 1)
+        # we can choose to sample with our without replacement - randint replaces, choice does not
         #sample_set = np.random.randint(0, self.num_clients, n_sample)
         sample_set = np.random.choice(np.arange(self.num_clients), size=n_sample, replace=False)
+        # Scaling factor is based on Footnote 1 of Wang et al:
+        # "weighted averaging local changes, where the weight of client 
+        #  i is re-scaled to (p_i m)/q." m is total samples, q is # clients samples, m is total # samples
+        scaling_factor = self.num_clients*n_sample
         for k in iter(sample_set):
             self.clients[k].client_update(
                 self.optimizer,
                 self.optimizer_args,
                 self.loss_fn)
-        self.center_server.aggregation(self.clients, self.aggregation_weights)
+        self.center_server.aggregation(self.clients, self.aggregation_weights, sample_set, scaling_factor)
 
     def send_model(self):
         for client in self.clients:

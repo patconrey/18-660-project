@@ -5,9 +5,9 @@ defaults:
 
 device: 'cpu'
 
-n_round: 100
+n_round: 200
 K: 30
-C: 0.3
+C: .3
 B: 50
 
 client_heterogeneity:
@@ -16,7 +16,7 @@ client_heterogeneity:
   should_use_heterogeneous_E: False
   # If should_use_heterogeneous_E == True, we'll use E_min and E_max.
   E_min: 1
-  E_max: 15
+  E_max: 5
   # If should_use_heterogeneous_E == False, we'll just use E for each client.
   E: 5
 

@@ -2,5 +2,5 @@ model:
   type: lr
   classname: LR
   args:
-    in_features: 60
-    num_classes: 10
+    n_features: 60
+    n_classes: 10

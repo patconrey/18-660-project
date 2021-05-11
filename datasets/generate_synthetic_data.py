@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 #   in heterogeneous networks". In Conference on Machine Learning 
 #   and Systems, 2020. https://arxiv.org/pdf/1812.06127.pdf
 # Approach to create synthetic data discribed in section 5.1
+# and Appendix C
 
 def softmax(x):
     return np.exp(x)/np.sum(np.exp(x), axis=0)
@@ -23,7 +24,7 @@ def calc_labels(W, X, b):
 def generate_client_samples_lognormal(num_clients, min_samples, mean_samples, std_samples, show_cdf=False):
     client_samples = min_samples + np.random.lognormal(mean_samples, std_samples, num_clients).astype(int)
     if show_cdf:
-        pct_of_total = np.flip(np.cumsum(np.flip(client_samples_sorted))/np.sum(client_samples))
+        pct_of_total = np.flip(np.cumsum(np.flip(np.sort(client_samples)))/np.sum(client_samples))
         plt.plot(np.arange(len(client_samples)), pct_of_total)
         plt.yscale('log')
         plt.xscale('log')
@@ -60,7 +61,7 @@ class SyntheticDataGenerator(object):
         label_set_list = []
         if iid:
             u_iid = self.rng.normal(0, self.alpha)
-            W_iid = self.rng.normal(u, 1, (self.n_classes, self.n_features))
+            W_iid = self.rng.normal(u_iid, 1, (self.n_classes, self.n_features))
             v_iid = np.zeros((self.n_features,))
             b_iid = self.rng.normal(u_iid, 1, (self.n_classes,1))
         for client_id in np.arange(n_clients):
@@ -100,9 +101,13 @@ def create_synthetic_lr_datasets(num_clients=30,
                                  beta=1,
                                  n_features=60,
                                  n_classes=10,
+                                 should_use_heterogeneous_data=True,
                                  iid=False):
-    client_samples = generate_client_samples_lognormal(num_clients, 100, 4, 2)
-    # print(client_samples)
+    if should_use_heterogeneous_data:
+        client_samples = generate_client_samples_lognormal(num_clients, 100, 4, 1)
+        print(client_samples)
+    else:
+        client_samples = np.ones(num_clients).astype(int)*120
     # client_samples = generate_client_samples_zipf(num_clients, 100, 2)
     # half the number of test samples as total training? more? less?
     data_generator = SyntheticDataGenerator(alpha, beta, n_features, n_classes)
