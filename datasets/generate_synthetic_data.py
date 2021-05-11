@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.random import RandomState, SeedSequence
 import torch
+from matplotlib import pyplot as plt
 
 # Generate synthetic data for federated learning using method
 # described in:
@@ -11,15 +12,34 @@ import torch
 # Approach to create synthetic data discribed in section 5.1
 
 def softmax(x):
-    return npx.exp(x)/np.sum(np.exp(x), axis=0)
+    return np.exp(x)/np.sum(np.exp(x), axis=0)
 
 def calc_labels(W, X, b):
-    Z = torch.mm(torch.Tensor(W),torch.Tensor(X)) + torch.Tensor(b)
-    Zexp = torch.exp(Z)
-    Zexp_sums = torch.transpose(torch.sum(Zexp, axis=0).unsqueeze(1), 0, 1)
-    labels = torch.argmax((Zexp / Zexp_sums),dim=0)
-    # labels_onehot = torch.nn.functional.one_hot(labels, num_classes=W.shape[0])
-    return labels
+    z = np.dot(W, X) + b
+    a = softmax(z)
+    y = a.argmax(axis=0)
+    return y
+
+def generate_client_samples_lognormal(num_clients, min_samples, mean_samples, std_samples, show_cdf=False):
+    client_samples = min_samples + np.random.lognormal(mean_samples, std_samples, num_clients).astype(int)
+    if show_cdf:
+        pct_of_total = np.flip(np.cumsum(np.flip(client_samples_sorted))/np.sum(client_samples))
+        plt.plot(np.arange(len(client_samples)), pct_of_total)
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.show()
+    return client_samples
+
+def generate_client_samples_zipf(num_clients, zipf_param, show_cdf=False):
+    client_samples = np.random.zipf(zipf_param, size=(100*num_clients,))
+    client_samples = np.sort(client_samples)[-num_clients:]
+    if show_cdf:
+        pct_of_total = np.flip(np.cumsum(np.flip(client_samples_sorted))/np.sum(client_samples))
+        plt.plot(np.arange(len(client_samples)), pct_of_total)
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.show()
+    return client_samples
 
 class SyntheticDataGenerator(object):
     def __init__(self, alpha=1, beta=1, n_features=60, n_classes=10):
@@ -32,39 +52,39 @@ class SyntheticDataGenerator(object):
         self.rng = np.random.default_rng()
         self.n_features = n_features
         self.n_classes = n_classes
-        self.feature_covariance_matrix = np.diag(np.array([i**(-1.2) for i in np.arange(1,n_features+1)]))
+        self.feature_covariance_matrix = np.diag(np.power(np.arange(1,n_features+1), -1.2))
     
-    def generate_client_data(self, n_samples, client_id):
-        B = self.rng.normal(0, self.beta)
-        v = self.rng.normal(B, 1, (self.n_features,))
-        X = self.rng.multivariate_normal(v, self.feature_covariance_matrix, size=n_samples).transpose()
-        u = self.rng.normal(0, self.alpha)
-        W = self.rng.normal(u, 1, (self.n_classes, self.n_features))
-        b = self.rng.normal(u, 1, (self.n_classes,1))
-        labels = calc_labels(W, X, b)
-        dataset = SyntheticLocalDataset(X, labels, W, b, client_id)
-        return dataset
-
-    def generate_iid_client_data(self, client_samples):
-        u = self.rng.normal(0, self.alpha)
-        W = self.rng.normal(u, 1, (self.n_classes, self.n_features))
-        b = self.rng.normal(u, 1, (self.n_classes,1))
-        v = np.zeros((self.n_features,))
-        iid_data = []
-        for client_id in np.arange(len(client_samples)):
+    def generate_client_data(self, client_samples, iid):
+        n_clients = len(client_samples)
+        feat_set_list = []
+        label_set_list = []
+        if iid:
+            u_iid = self.rng.normal(0, self.alpha)
+            W_iid = self.rng.normal(u, 1, (self.n_classes, self.n_features))
+            v_iid = np.zeros((self.n_features,))
+            b_iid = self.rng.normal(u_iid, 1, (self.n_classes,1))
+        for client_id in np.arange(n_clients):
             n_samples = client_samples[client_id]
+            if iid:
+                W = W_iid
+                b = b_iid
+                v = v_iid
+            else:
+                u = self.rng.normal(0, self.alpha)
+                W = self.rng.normal(u, 1, (self.n_classes, self.n_features))
+                b = self.rng.normal(u, 1, (self.n_classes, 1))
+                B = self.rng.normal(0, self.beta)
+                v = self.rng.normal(B, 1, (self.n_features,))
             X = self.rng.multivariate_normal(v, self.feature_covariance_matrix, size=n_samples).transpose()
             labels = calc_labels(W, X, b)
-            dataset = SyntheticLocalDataset(X, labels, W, b, client_id)
-            iid_data.append(dataset)
-        return iid_data
+            feat_set_list.append(X)
+            label_set_list.append(labels)
+        return feat_set_list, label_set_list
 
 class SyntheticLocalDataset(object):
-    def __init__(self, features, labels, W, b, client_id):
+    def __init__(self, features, labels, client_id):
         self.features = features
         self.labels = labels
-        self.W_true = W
-        self.b_true = b
         self.client_id = client_id
 
     def __getitem__(self, index):
@@ -81,33 +101,48 @@ def create_synthetic_lr_datasets(num_clients=30,
                                  n_features=60,
                                  n_classes=10,
                                  iid=False):
-    # This is my best attempt so far at generating the number of samples for
-    # each client in a distribution that "follows a power law", as the paper
-    # states. We can continue to tweak this.
-    zipf_param = 2
-    client_samples = np.random.zipf(zipf_param, size=(500*num_clients,))
-    client_samples = np.sort(client_samples)[-num_clients:]
-    # from matplotlib import pyplot as plt
-    # plt.hist(client_samples, bins=np.arange(min(client_samples), max(client_samples)+1,))
-    # plt.show()
+    client_samples = generate_client_samples_lognormal(num_clients, 100, 4, 2)
+    # print(client_samples)
+    # client_samples = generate_client_samples_zipf(num_clients, 100, 2)
     # half the number of test samples as total training? more? less?
-    n_test_samples = int(client_samples.sum()/2)
     data_generator = SyntheticDataGenerator(alpha, beta, n_features, n_classes)
     
-    if iid:
-        client_samples = np.append(client_samples, n_test_samples)
-        local_datasets = data_generator.generate_iid_client_data(client_samples)
-        # not sure how to make the test dataset?
-        test_dataset = local_datasets[-1]
-        local_datasets = local_datasets[:-1]
-        test_dataset.client_id = -1
-    else:
-        local_datasets = []
-        for client_id in range(num_clients):
-            n_samples = client_samples[client_id]
-            client_data = data_generator.generate_client_data(n_samples, client_id)
-            local_datasets.append(client_data)
-        test_dataset = data_generator.generate_client_data(n_test_samples, -1)
+    feat_set_list, label_set_list = data_generator.generate_client_data(client_samples, iid)
+    pct_train = 0.9
+    force_equal_test_distribution = True
+    equal_split_index = int((1-pct_train)*min(client_samples))
+    test_features_set = np.empty((n_features,0), dtype=float)
+    test_labels_set = np.empty((1,0), dtype=int)
+    local_datasets = []
+    for client_id in np.arange(num_clients):
+        features = feat_set_list[client_id]
+        labels = label_set_list[client_id]
+        if force_equal_test_distribution:
+            split_index = equal_split_index
+        else:
+            split_index = int(pct_train*features.shape[1])
+        train_features = features[:,:split_index]
+        train_labels = labels[:split_index]
+        test_features = features[:,split_index:]
+        test_labels = labels[split_index:]
+        local_datasets.append(SyntheticLocalDataset(train_features, train_labels, client_id))
+        test_features_set = np.concatenate((test_features_set, test_features), axis=1)
+        test_labels_set = np.append(test_labels_set, test_labels)
+
+    test_dataset = SyntheticLocalDataset(test_features_set, test_labels_set, -1)
+
+    # show distribution of classes across clients
+    if False:
+        class_bins=np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])-.5
+        f = plt.figure(figsize=(14, 9))
+        for i in range(30):
+            plt.subplot(6, 5, i+1)
+            plt.title('Client {}'.format(i))
+            plt.hist(
+                    local_datasets[i].labels,
+                    density=False,
+                    bins=class_bins)
+        plt.show()
     
     return (local_datasets, test_dataset)
         

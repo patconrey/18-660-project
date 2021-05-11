@@ -95,7 +95,8 @@ class FedNova():
     def train_step(self):
         self.send_model()
         n_sample = max(int(self.fraction * self.num_clients), 1)
-        sample_set = np.random.randint(0, self.num_clients, n_sample)
+        #sample_set = np.random.randint(0, self.num_clients, n_sample)
+        sample_set = np.random.choice(np.arange(self.num_clients), size=n_sample, replace=False)
         for k in iter(sample_set):
             self.clients[k].client_update(
                 self.optimizer,

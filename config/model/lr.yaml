@@ -2,5 +2,5 @@ model:
   type: lr
   classname: LR
   args:
-    in_features: 61 # includes bias term
+    in_features: 60
     num_classes: 10

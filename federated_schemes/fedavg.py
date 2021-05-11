@@ -46,7 +46,7 @@ class FedAvg():
                 iid=iid,
                 should_use_heterogeneous_data=should_use_heterogeneous_data)
         elif dataset == 'synthetic':
-            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients, 1, 1, 60, 10, iid)
+            (local_datasets, test_dataset) = create_synthetic_lr_datasets(num_clients, 0, 0, 60, 10, iid)
         else:
             raise Exception("Unrecognized dataset argument")
         
@@ -94,7 +94,8 @@ class FedAvg():
     def train_step(self):
         self.send_model()
         n_sample = max(int(self.fraction * self.num_clients), 1)
-        sample_set = np.random.randint(0, self.num_clients, n_sample)
+        #sample_set = np.random.randint(0, self.num_clients, n_sample)
+        sample_set = np.random.choice(np.arange(self.num_clients), size=n_sample, replace=False)
         for k in iter(sample_set):
             self.clients[k].client_update(
                 self.optimizer,

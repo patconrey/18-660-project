@@ -3,7 +3,7 @@ import sklearn.datasets
 from datasets.generate_synthetic_data import create_synthetic_lr_datasets
 from models.lr import LR
 from torch.utils.data import DataLoader
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, NLLLoss
 from torch.optim import *
 
 class SyntheticLocalDataset(object):
@@ -36,12 +36,10 @@ if use_easy_synthetic_data:
     train_dataset = SyntheticLocalDataset(x_tr, y_tr)
     test_dataset = SyntheticLocalDataset(x_test, y_test)
 else:
-    N = 10 # num features
-    K = 3 # num classes
-    (train_datasets, test_dataset) = create_synthetic_lr_datasets(1, .1, .1, N, K, True)
+    N = 60 # num features
+    K = 10 # num classes
+    (train_datasets, test_dataset) = create_synthetic_lr_datasets(1, 1, 1, N, K, True)
     train_dataset = train_datasets[0]
-
-
 
 dataloader = DataLoader(train_dataset,
                             num_workers=0,
@@ -52,12 +50,17 @@ test_dataloader = DataLoader(train_dataset,
                             batch_size=50,
                             shuffle=True)
 
-model = LR(N, K)
+use_cross_entropy_loss = True
+if use_cross_entropy_loss:
+    loss_fn = CrossEntropyLoss()
+else:
+    loss_fn = NLLLoss()
+
+model = LR(N, K, use_cross_entropy_loss)
 
 model.train()
 model.to('cpu')
 optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-5)
-loss_fn = CrossEntropyLoss()
 
 for i in range(100):
 

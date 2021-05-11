@@ -59,7 +59,6 @@ class FedAvgClient(Client):
                 optimizer.zero_grad()
                 logits = self.model(img)
                 loss = loss_fn(logits, target)
-
                 loss.backward()
                 optimizer.step()
         self.model.to("cpu")
