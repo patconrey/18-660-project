@@ -24,14 +24,14 @@ def get_mnist_data(datadir):
 
     with gzip.open(ops.join(datadir, key_file["train_img"]), "rb") as f:
         train_img = np.frombuffer(f.read(), np.uint8, offset=16)
-    train_img = train_img.reshape(-1, 784)
+        train_img = train_img.reshape(-1, 784)
 
     with gzip.open(ops.join(datadir, key_file["train_label"]), "rb") as f:
         train_label = np.frombuffer(f.read(), np.uint8, offset=8)
 
     with gzip.open(ops.join(datadir, key_file["test_img"]), "rb") as f:
         test_img = np.frombuffer(f.read(), np.uint8, offset=16)
-    test_img = test_img.reshape(-1, 784)
+        test_img = test_img.reshape(-1, 784)
 
     with gzip.open(ops.join(datadir, key_file["test_label"]), "rb") as f:
         test_label = np.frombuffer(f.read(), np.uint8, offset=8)

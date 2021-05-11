@@ -11,6 +11,8 @@ from omegaconf import DictConfig
 from torch.optim import *
 
 from models.mlp import MLP
+# from models.vgg import VGG
+from bakari.vgg_custom import VGG
 from utils import *
 from utils import seed_everything
 
@@ -24,7 +26,7 @@ def main(cfg: DictConfig):
     seed_everything(cfg.seed)
     log.info("\n" + cfg.pretty())
 
-    model = MLP(**cfg.model.args)
+    model = VGG(**cfg.model.args)
     writer = SummaryWriter(log_dir=os.path.join(cfg.savedir, "tf"))
     scheme = FedAvg(model=model,
 						optimizer=SGD,

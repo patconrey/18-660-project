@@ -2,6 +2,19 @@
 To run the project, you'll need to install the necessary packages. Those packages are detailed in `environment.yml` at the root of the project. I used conda to set up my environment, so I'd suggest doing the same at least until everybody gets it up and running. If you're going to use conda, run the following command:
 `conda env create --file environment.yml`. I'm _nearly_ positive this will make a conda environment called `660-project` with the necessary packages.
 
+## Data
+You will need to download the MNIST dataset in order to run the project. Download the file [18-600-mnist.zip](https://pats-public-d66bc4c3.s3-us-west-2.amazonaws.com/18-660-mnist.zip). Unzip it in the root directory of this project. It should make a structure that looks like
+```
+|- data
+	|-mnist
+		|-t10k-images-idx3-ubyte.gz
+		|-t10k-labels-idx1-ubyte.gz
+		|-train-images-idx3-ubyte.gz
+		|-train-labels-idx1-ubyte.gz
+|- <rest of project>
+```
+You don't need to do anything else. The code is set up to read from the `*.gz` files, even though they look like you should untar them. The total file size is ~12mB. 
+
 # Running the default
 The project is structured so that you have to run the command `python run.py` to begin federated training. In the `run` script, you specify a couple important things:
 - The config file to use for training (e.g., `@hydra.main(config_path="./config/config.yaml", strict=True)`).

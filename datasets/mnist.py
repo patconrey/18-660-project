@@ -1,3 +1,4 @@
+import numpy as np
 import PIL.Image as Image
 import torch
 from torch.utils.data import Dataset
@@ -11,11 +12,16 @@ class MnistLocalDataset(Dataset):
         self.client_id = client_id
         self.transform = transforms.Compose([
             transforms.ToTensor(),
+            # Images must be at least 224x224 for VGG
+            transforms.Pad(padding=[2,], fill=0, padding_mode='constant'),
             transforms.Normalize((0.1307, ), (0.3081, ))
         ])
 
     def __getitem__(self, index):
-        img = Image.fromarray(self.images[index].reshape(28, 28), mode='L')
+        # VGG requires images with 3 channels
+        arg = np.dstack([self.images[index].reshape(28, 28) for _ in range(3)])
+        img = Image.fromarray(arg, mode='RGB')
+
         img = self.transform(img)
         target = self.labels[index]
         return img, target
