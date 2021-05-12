@@ -1,6 +1,6 @@
 defaults:
   - model: lr
-  - fed: fednova
+  - fed: fedavg
   - optim: sgd
 
 device: 'cpu'

@@ -41,17 +41,26 @@ class FedAvgCenterServer(CenterServer):
 
     def aggregation(self, trained_clients, trained_clients_aggregation_weights, scaling_factor):
         # NOTE: we only update using clients that were trained on in this round
-        # initialize update dictionary
+        global_model_state = copy.deepcopy(self.model.state_dict())
+        # initialize state dictionary for compiling the updates to the model
         update_state = OrderedDict()
         for key in self.model.state_dict().keys():
             update_state[key] = 0
 
-        for k, client in enumerate(trained_clients):
-            local_state = client.model.state_dict()
-            for key in self.model.state_dict().keys():
-                update_state[key] += local_state[key] * trained_clients_aggregation_weights[k] * scaling_factor
+        # for k, client in enumerate(trained_clients):
+        #     local_state = client.model.state_dict()
+        #     for key in self.model.state_dict().keys():
+        #         update_state[key] += local_state[key] * trained_clients_aggregation_weights[k] * scaling_factor
 
-        self.model.load_state_dict(update_state)
+        # self.model.load_state_dict(update_state)
+        for k, client in enumerate(trained_clients):
+            for key in self.model.state_dict().keys():
+                update_state[key] += client.state_adjustment[key] * trained_clients_aggregation_weights[k] * scaling_factor
+
+        for key in self.model.state_dict().keys():
+            global_model_state[key] += update_state[key]
+
+        self.model.load_state_dict(global_model_state)
 
     def validation(self, loss_fn):
         self.model.to(self.device)
@@ -80,27 +89,30 @@ class FedNovaCenterServer(CenterServer):
 
     def aggregation(self, trained_clients, trained_clients_aggregation_weights, scaling_factor):
         # NOTE: we only update using clients that were trained on in this round
-        
+        global_model_state = copy.deepcopy(self.model.state_dict())
         # initialize state dictionary for compiling the updates to the model
         update_state = OrderedDict()
         for key in self.model.state_dict().keys():
             update_state[key] = 0
 
-        # calculating tau_eff important for FedNova
+        # calculating tau_eff is key for FedNova
         taus = np.array([client.tau for client in trained_clients])
         pks = np.array([len(client.dataloader.dataset) for client in trained_clients])
         pks = pks / pks.sum()
         tau_eff = taus @ pks
         
+        # for k, client in enumerate(trained_clients):
+        #     local_state = client.model.state_dict()
+        #     for key in self.model.state_dict().keys():
+        #         update_state[key] += local_state[key] * trained_clients_aggregation_weights[k] / client.tau * scaling_factor
         for k, client in enumerate(trained_clients):
-            local_state = client.model.state_dict()
             for key in self.model.state_dict().keys():
-                update_state[key] += local_state[key] * trained_clients_aggregation_weights[k] / client.tau * scaling_factor
+                update_state[key] += client.state_adjustment[key] * trained_clients_aggregation_weights[k] / client.tau * scaling_factor
 
         for key in self.model.state_dict().keys():
-            update_state[key] *= tau_eff
+            global_model_state[key] += (tau_eff*update_state[key])
 
-        self.model.load_state_dict(update_state)
+        self.model.load_state_dict(global_model_state)
 
     def validation(self, loss_fn):
         self.model.to(self.device)

@@ -2,6 +2,7 @@ import random
 from collections import OrderedDict
 import numpy as np
 import torch
+import copy
 
 class Client:
     def __init__(self,
@@ -55,13 +56,12 @@ class FederatedClient(Client):
             learning_rate /= 2
 
         optimizer = optimizer(self.model.parameters(), learning_rate)
-        
+        state_before_training = copy.deepcopy(self.model.state_dict())
         # Decide local epochs to use.
         epochs_to_perform = self.local_epoch
         if self.should_use_heterogeneous_E:
             epochs_to_perform = random.randint(self.local_epoch_min, self.local_epoch_max)
         self.epochs_to_perform = epochs_to_perform
-
         # only used for fednova
         # initialize list of gradients stored end of each batch round
         rounds_performed = int(epochs_to_perform*np.ceil(len(self.dataloader.dataset)/self.dataloader.batch_size))
@@ -94,6 +94,11 @@ class FederatedClient(Client):
                         grad_accumulator[n] += p.grad * aggregation_weights[round_counter]/L1_aggregation
                 round_counter += 1
 
+        state_adjustment = OrderedDict()
+        for key in self.model.state_dict().keys():
+            state_adjustment[key] = self.model.state_dict()[key] - state_before_training[key]
+        
+        self.state_adjustment = state_adjustment
         self.prev_net_gradient = grad_accumulator
 
     def eval_train(self, loss_fn):
