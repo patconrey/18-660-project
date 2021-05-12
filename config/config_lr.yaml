@@ -1,9 +1,11 @@
 defaults:
   - model: lr
-  - fed: fedavg
+  - fed: fednova
   - optim: sgd
 
 device: 'cpu'
+
+dataset: 'synthetic'
 
 n_round: 200
 K: 30

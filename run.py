@@ -21,14 +21,13 @@ from federated_schemes.federated import FederatedScheme
 #@hydra.main(config_path="./config/config.yaml", strict=True)
 @hydra.main(config_path="./config/config_lr.yaml", strict=True)
 def main(cfg: DictConfig):
-    dataset = 'mnist'
     os.chdir(cfg.root)
     seed_everything(cfg.seed)
     log.info("\n" + cfg.pretty())
     if cfg.model['type'] == 'mlp':
         model = MLP(**cfg.model.args)
     elif cfg.model['type'] == 'lr':
-        if dataset == 'mnist':
+        if cfg.dataset == 'mnist':
             cfg.model.args['n_features'] = 784
         model = LR(**cfg.model.args)
     elif cfg.model['type'] == 'vgg':
@@ -46,7 +45,7 @@ def main(cfg: DictConfig):
                         batchsize=cfg.B,
                         fraction=cfg.C,
                         iid=cfg.client_heterogeneity.iid,
-                        dataset=dataset,
+                        dataset=cfg.dataset,
                         device=cfg.device,
                         should_use_heterogeneous_E=cfg.client_heterogeneity.should_use_heterogeneous_E,
                         local_epoch=cfg.client_heterogeneity.E,

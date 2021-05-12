@@ -78,9 +78,9 @@ class FederatedScheme():
                 device=device) for k in range(num_clients)
         ]
         self.total_data_size = sum([len(client) for client in self.clients])
-        self.aggregation_weights = [
+        self.aggregation_weights = np.array([
             len(client) / self.total_data_size for client in self.clients
-        ]
+        ])
 
         test_dataloader = DataLoader(test_dataset,
                                      num_workers=0,
@@ -103,10 +103,12 @@ class FederatedScheme():
     def fit(self, num_round):
         self._round = 0
         self.result = {'loss': [], 'accuracy': [], 'train_loss': [], 'train_accuracy': []}
+        self.send_model()
         self.validation_step()
         for t in range(num_round):
             self._round = t + 1
             self.train_step()
+            self.send_model()
             self.validation_step()
 
         fig, axs = plt.subplots(2, 2)
@@ -130,10 +132,14 @@ class FederatedScheme():
         # Scaling factor is based on Footnote 1 of Wang et al:
         # "weighted averaging local changes, where the weight of client 
         #  i is re-scaled to (p_i m)/q." m is total samples, q is # clients samples, m is total # samples
-        scaling_factor = 1#self.num_clients/n_sample
-        
-        train_loss = 0
-        train_correct = 0
+        # scaling_factor = self.num_clients/n_sample
+        # In reality, I think this messes stuff up and they included this term only for their convergence
+        # analysis, so just set it to 1 (equivalent to ignoring it)
+        scaling_factor = 1
+
+        trained_clients = []
+        trained_clients_aggregation_weights = []
+
         num_samples_train = np.sum([len(self.clients[k]) for k in sample_set])
         for k in iter(sample_set):
             self.clients[k].client_update(
@@ -141,39 +147,32 @@ class FederatedScheme():
                 self.optimizer_args,
                 self.loss_fn,
                 communication_round=self._round)
-            train_loss += self.clients[k].most_recent_avg_loss*len(self.clients[k])
-            train_correct += self.clients[k].most_recent_num_correct
-        
-        train_loss /= num_samples_train
-        train_accuracy = train_correct/num_samples_train * 100
-        if self.writer is not None:
-            self.writer.add_scalar("test/loss", train_loss, self._round)
-            self.writer.add_scalar("test/accuracy", train_accuracy, self._round)
-        self.result['train_loss'].append(train_loss)
-        self.result['train_accuracy'].append(train_accuracy)
-        self.center_server.aggregation(self.clients, self.aggregation_weights, sample_set, scaling_factor)
+            trained_clients.append(self.clients[k])
+            trained_clients_aggregation_weights.append(self.aggregation_weights[k])
+
+        self.center_server.aggregation(trained_clients, trained_clients_aggregation_weights, scaling_factor)
 
     def send_model(self):
         for client in self.clients:
             client.model = self.center_server.send_model()
 
     def validation_step(self):
-        test_loss, accuracy = self.center_server.validation(self.loss_fn)
-        if self._round != 0:
-            train_loss = self.result['train_loss'][-1]
-            train_accuracy = self.result['train_accuracy'][-1]
-        else:
-            train_loss = test_loss
-            train_accuracy = accuracy
+        train_loss, train_accuracy = self.center_server.eval_all_train_data(self.clients, self.loss_fn, self.aggregation_weights)
+        test_loss, test_accuracy = self.center_server.validation(self.loss_fn)
+
         log.info(
-            f"[Round: {self._round: 04}] Train set: Average loss: {train_loss:.4f} Accuracy: {train_accuracy:.2f} // Test set: Average loss: {test_loss:.4f}, Accuracy: {accuracy:.2f}%"
+            f"[Round: {self._round: 04}] Train set: Average loss: {train_loss:.4f} Accuracy: {train_accuracy:.2f} // Test set: Average loss: {test_loss:.4f}, Accuracy: {test_accuracy:.2f}%"
         )
         if self.writer is not None:
+            self.writer.add_scalar("train/loss", train_loss, self._round)
+            self.writer.add_scalar("train/accuracy", train_accuracy, self._round)
             self.writer.add_scalar("val/loss", test_loss, self._round)
-            self.writer.add_scalar("val/accuracy", accuracy, self._round)
+            self.writer.add_scalar("val/accuracy", test_accuracy, self._round)
 
+        self.result['train_loss'].append(test_loss)
+        self.result['train_accuracy'].append(train_accuracy)
         self.result['loss'].append(test_loss)
-        self.result['accuracy'].append(accuracy)
+        self.result['accuracy'].append(test_accuracy)
 
 
     

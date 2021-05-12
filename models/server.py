@@ -18,24 +18,38 @@ class CenterServer:
     def validation(self):
         raise NotImplementedError
 
+    def eval_all_train_data(self, clients, loss_fn, aggregation_weights):
+        num_clients = len(clients)
+        losses = np.zeros(num_clients)
+        accuracies = np.zeros(num_clients)
+        for ind, client in enumerate(clients):
+            loss, accuracy = client.eval_train(loss_fn)
+            losses[ind] = loss
+            accuracies[ind] = accuracy
+
+        train_loss = np.dot(aggregation_weights, losses)
+        train_accuracy = np.dot(aggregation_weights, accuracies)
+        return train_loss, train_accuracy
+
+
+        
+
  
 class FedAvgCenterServer(CenterServer):
     def __init__(self, model, dataloader, device="cpu"):
         super().__init__(model, dataloader, device)
 
-    def aggregation(self, clients, aggregation_weights, sample_set, scale_factor):
+    def aggregation(self, trained_clients, trained_clients_aggregation_weights, scaling_factor):
+        # NOTE: we only update using clients that were trained on in this round
         # initialize update dictionary
         update_state = OrderedDict()
         for key in self.model.state_dict().keys():
             update_state[key] = 0
 
-        for k, client in enumerate(clients):
-            # only update using clients that were trained on in this round
-            if client.client_id not in sample_set:
-                continue
+        for k, client in enumerate(trained_clients):
             local_state = client.model.state_dict()
             for key in self.model.state_dict().keys():
-                update_state[key] += local_state[key] * aggregation_weights[k] * scale_factor
+                update_state[key] += local_state[key] * trained_clients_aggregation_weights[k] * scaling_factor
 
         self.model.load_state_dict(update_state)
 
@@ -64,29 +78,24 @@ class FedNovaCenterServer(CenterServer):
     def __init__(self, model, dataloader, device="cpu"):
         super().__init__(model, dataloader, device)
 
-    def aggregation(self, clients, aggregation_weights, sample_set, scaling_factor):
+    def aggregation(self, trained_clients, trained_clients_aggregation_weights, scaling_factor):
+        # NOTE: we only update using clients that were trained on in this round
         
+        # initialize state dictionary for compiling the updates to the model
         update_state = OrderedDict()
-        
         for key in self.model.state_dict().keys():
             update_state[key] = 0
-        
-        trained_clients = []
-        for ind in sample_set:
-            trained_clients.append(clients[ind])
 
+        # calculating tau_eff important for FedNova
         taus = np.array([client.tau for client in trained_clients])
         pks = np.array([len(client.dataloader.dataset) for client in trained_clients])
         pks = pks / pks.sum()
         tau_eff = taus @ pks
         
-        for k, client in enumerate(clients):
-            # only update using clients that were trained on in this round
-            if client.client_id not in sample_set:
-                continue
+        for k, client in enumerate(trained_clients):
             local_state = client.model.state_dict()
             for key in self.model.state_dict().keys():
-                update_state[key] += local_state[key] * aggregation_weights[k] / client.tau * scaling_factor
+                update_state[key] += local_state[key] * trained_clients_aggregation_weights[k] / client.tau * scaling_factor
 
         for key in self.model.state_dict().keys():
             update_state[key] *= tau_eff
