@@ -12,7 +12,7 @@ from torch.optim import *
 
 from models.mlp import MLP
 # from models.vgg import VGG
-from bakari.vgg_custom import VGG
+from bakari.vgg_custom import VGG_32x32
 from utils import *
 from utils import seed_everything
 
@@ -26,7 +26,7 @@ def main(cfg: DictConfig):
     seed_everything(cfg.seed)
     log.info("\n" + cfg.pretty())
 
-    model = VGG(**cfg.model.args)
+    model = VGG_32x32()
     writer = SummaryWriter(log_dir=os.path.join(cfg.savedir, "tf"))
     scheme = FedAvg(model=model,
 						optimizer=SGD,
