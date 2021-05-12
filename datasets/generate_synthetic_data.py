@@ -126,10 +126,10 @@ def create_synthetic_lr_datasets(num_clients=30,
             split_index = equal_split_index
         else:
             split_index = int(pct_train*features.shape[1])
-        train_features = features[:,:split_index]
-        train_labels = labels[:split_index]
-        test_features = features[:,split_index:]
-        test_labels = labels[split_index:]
+        train_features = features[:,:-split_index]
+        train_labels = labels[:-split_index]
+        test_features = features[:,-split_index:]
+        test_labels = labels[-split_index:]
         local_datasets.append(SyntheticLocalDataset(train_features, train_labels, client_id))
         test_features_set = np.concatenate((test_features_set, test_features), axis=1)
         test_labels_set = np.append(test_labels_set, test_labels)

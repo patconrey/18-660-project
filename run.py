@@ -15,8 +15,7 @@ from models.lr import LR
 from utils import *
 from utils import seed_everything
 
-from federated_schemes.fedavg import FedAvg
-from federated_schemes.fednova import FedNova
+from federated_schemes.federated import FederatedScheme
 
 
 #@hydra.main(config_path="./config/config.yaml", strict=True)
@@ -28,26 +27,25 @@ def main(cfg: DictConfig):
     if cfg.model['type'] == 'mlp':
         model = MLP(**cfg.model.args)
     elif cfg.model['type'] == 'lr':
+        if cfg.dataset == 'mnist':
+            cfg.model.args['n_features'] = 784
         model = LR(**cfg.model.args)
     elif cfg.model['type'] == 'vgg':
         raise NotImplementedError()
     else:
         raise Exception("Unrecognized model argument")
 
-    if cfg.fed['type'] == 'fedavg':
-        FedModel = FedAvg
-    elif cfg.fed['type'] == 'fednova':
-        FedModel = FedNova
     writer = SummaryWriter(log_dir=os.path.join(cfg.savedir, "tf"))
 
-    scheme = FedModel(model=model,
+    scheme = FederatedScheme(model=model,
                         optimizer=SGD,
                         optimizer_args=cfg.optim.args,
+                        federated_type=cfg.fed.type,
                         num_clients=cfg.K,
                         batchsize=cfg.B,
                         fraction=cfg.C,
                         iid=cfg.client_heterogeneity.iid,
-                        dataset='synthetic',
+                        dataset=cfg.dataset,
                         device=cfg.device,
                         should_use_heterogeneous_E=cfg.client_heterogeneity.should_use_heterogeneous_E,
                         local_epoch=cfg.client_heterogeneity.E,
