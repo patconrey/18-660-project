@@ -1,5 +1,7 @@
 import random
+from collections import OrderedDict
 import numpy as np
+import torch
 
 class Client:
     def __init__(self,
@@ -28,7 +30,8 @@ class Client:
 
     @property
     def tau(self):
-        return np.floor( self.epochs_to_perform * len(self.dataloader.dataset) / self.dataloader.batch_size )
+        return np.floor(self.epochs_to_perform * len(self.dataloader.dataset) / self.dataloader.batch_size)
+        #return (self.epochs_to_perform * len(self.dataloader.dataset)) / self.dataloader.batch_size
 
     @model.setter
     def model(self, model):
@@ -61,8 +64,17 @@ class FederatedClient(Client):
             epochs_to_perform = random.randint(self.local_epoch_min, self.local_epoch_max)
         self.epochs_to_perform = epochs_to_perform
 
-        losses = []
-        number_correct = []
+        # only used for fednova
+        # initialize list of gradients stored end of each batch round
+        rounds_performed = int(epochs_to_perform*np.ceil(len(self.dataloader.dataset)/self.dataloader.batch_size))
+        aggregation_weights = np.ones(rounds_performed)
+        L1_aggregation = np.sum(aggregation_weights)
+        grad_accumulator = OrderedDict()
+        for n, p in self.model.named_parameters():
+            if(p.requires_grad):
+                grad_accumulator[n] = 0
+
+        round_counter = 0
         for i in range(epochs_to_perform):
             for img, target in self.dataloader:
                 optimizer.zero_grad()
@@ -73,31 +85,35 @@ class FederatedClient(Client):
                 logits = self.model(img)
                 loss = loss_fn(logits, target)
 
-                losses.append(loss.item())
                 pred = logits.argmax(dim=1, keepdim=True)
-                number_correct.append(pred.eq(target.view_as(pred)).sum().item())
                 
                 loss.backward()
                 optimizer.step()
+                # gather and store gradients
+                local_state = self.model.state_dict()
+                for n, p in self.model.named_parameters():
+                    if(p.requires_grad):
+                        grad_accumulator[n] += p.grad * aggregation_weights[round_counter]/L1_aggregation
+                round_counter += 1
 
-        self.most_recent_avg_loss = np.mean(losses)
-        self.most_recent_num_correct = np.mean(number_correct)
+        self.prev_net_gradient = grad_accumulator
 
-        # evaluate loss and accurary after training finished (for tracking total training loss/accuracy)
-        # self.model.eval()
-        # train_loss = 0
-        # train_correct = 0
-        # for img, target in self.dataloader:
-        #     img = img.to(self.device)
-        #     target = target.to(self.device)
-        #     optimizer.zero_grad()
-        #     logits = self.model(img)
-        #     loss = loss_fn(logits, target)
-        #     train_loss += loss.item()
-        #     pred = logits.argmax(dim=1, keepdim=True)
-        #     train_correct += pred.eq(target.view_as(pred)).sum().item()
+        # evaluate loss and accurary after training finished (for tracking training loss/accuracy)
+        train_loss = 0
+        train_correct = 0
+        optimizer.zero_grad()
+        self.model.eval()
+        with torch.no_grad():
+            for img, target in self.dataloader:
+                img = img.to(self.device)
+                target = target.to(self.device)
+                logits = self.model(img)
+                loss = loss_fn(logits, target)
+                train_loss += loss.item()
+                pred = logits.argmax(dim=1, keepdim=True)
+                train_correct += pred.eq(target.view_as(pred)).sum().item()
         
-        # self.most_recent_avg_loss = train_loss/len(self.dataloader)
-        # self.most_recent_num_correct = train_correct
+        self.most_recent_avg_loss = train_loss/len(self.dataloader)
+        self.most_recent_num_correct = train_correct
 
         self.model.to("cpu")

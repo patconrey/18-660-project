@@ -11,9 +11,8 @@ from torch.nn import CrossEntropyLoss
 from models.client import *
 from models.server import *
 
-from datasets.mnist import MnistLocalDataset
+from datasets.mnist import create_mnist_datasets
 from datasets.generate_synthetic_data import create_synthetic_lr_datasets
-from utils.data import get_mnist_data
 
 import matplotlib.pyplot as plt
 
@@ -49,7 +48,7 @@ class FederatedScheme():
         self.local_epoch = local_epoch  # E
         self.dataset = dataset
         if dataset == 'mnist':
-            local_datasets, test_dataset = self.create_mnist_datasets(
+            local_datasets, test_dataset = create_mnist_datasets(
                 num_clients,
                 iid=iid,
                 should_use_heterogeneous_data=should_use_heterogeneous_data)
@@ -63,7 +62,6 @@ class FederatedScheme():
                     iid=iid)
         else:
             raise Exception("Unrecognized dataset argument")
-        
         local_dataloaders = [DataLoader(dataset,
                             num_workers=0,
                             batch_size=batchsize,
@@ -132,7 +130,7 @@ class FederatedScheme():
         # Scaling factor is based on Footnote 1 of Wang et al:
         # "weighted averaging local changes, where the weight of client 
         #  i is re-scaled to (p_i m)/q." m is total samples, q is # clients samples, m is total # samples
-        scaling_factor = self.num_clients/n_sample
+        scaling_factor = 1#self.num_clients/n_sample
         
         train_loss = 0
         train_correct = 0
@@ -177,60 +175,5 @@ class FederatedScheme():
         self.result['loss'].append(test_loss)
         self.result['accuracy'].append(accuracy)
 
-    def create_mnist_datasets(self,
-                              num_clients=100,
-                              datadir="./data/mnist",
-                              should_use_heterogeneous_data=False,
-                              iid=False):
-        train_img, train_label, test_img, test_label = get_mnist_data(datadir)
-
-        train_sorted_index = np.argsort(train_label)
-        train_img = train_img[train_sorted_index]
-        train_label = train_label[train_sorted_index]
-
-        if iid:
-            random.shuffle(train_sorted_index)
-            train_img = train_img[train_sorted_index]
-            train_label = train_label[train_sorted_index]
-
-        # Set up hetereogenous / non-heterogeneous shard sizes
-        shard_start_indices = None
-        if should_use_heterogeneous_data:
-            shard_sizes = np.random.power(3, size=num_clients)
-            shard_sizes /= shard_sizes.sum()
-            shard_sizes *= len(train_img)
-            shard_sizes = shard_sizes.astype(int)
-            shard_start_indices = np.hstack([[0], np.cumsum(shard_sizes)[:-1]])
-        else:
-            shard_size = int(train_img.shape[0] // num_clients)
-            shard_start_indices = np.array([i for i in range(0, len(train_img), shard_size)])
-            shard_sizes = np.array([shard_size for i in range(num_clients)])
-        
-        _indices_of_shards_and_sizes = np.arange(0, len(shard_start_indices))
-        random.shuffle(_indices_of_shards_and_sizes)
-        shuffled_shard_sizes = shard_sizes[_indices_of_shards_and_sizes]
-        shuffled_shard_start_indices = shard_start_indices[_indices_of_shards_and_sizes]
-
-        local_datasets = []
-        for client_id in range(num_clients):
-            start_index_of_client_data_shard = shuffled_shard_start_indices[client_id] 
-            end_index_of_client_data_shard = start_index_of_client_data_shard + shuffled_shard_sizes[client_id]
-            
-            img = np.concatenate([
-                train_img[start_index_of_client_data_shard : end_index_of_client_data_shard, :]
-            ])
-            label = np.concatenate([
-                train_label[start_index_of_client_data_shard : end_index_of_client_data_shard]
-            ])
-
-            local_datasets.append(MnistLocalDataset(img, label, client_id))
-
-        test_sorted_index = np.argsort(test_label)
-        test_img = test_img[test_sorted_index]
-        test_label = test_label[test_sorted_index]
-
-        test_dataset = MnistLocalDataset(test_img, test_label, client_id=-1)
-
-        return local_datasets, test_dataset
 
     

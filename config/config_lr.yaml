@@ -1,13 +1,13 @@
 defaults:
   - model: lr
-  - fed: fednova
+  - fed: fedavg
   - optim: sgd
 
 device: 'cpu'
 
 n_round: 200
 K: 30
-C: 1.0
+C: 0.3
 B: 20
 
 client_heterogeneity:
