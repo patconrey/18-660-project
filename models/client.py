@@ -28,7 +28,16 @@ class Client:
 
     @property
     def tau(self):
-        return np.floor( self.epochs_to_perform * len(self.dataloader.dataset) / self.dataloader.batch_size )
+        # TODO! I think this is the source of the error
+        # The len(self.dataloader.dataset) is always 10
+        # Tau was a fraction, so we were really scaling up the gradients.
+        # I think the fix by Tim will fix this.
+
+        # I can confirm that this method works for the mnist dataset.
+        # I'm nearly positive it's somehow broken for the synthetic dataset.
+        tau = self.epochs_to_perform * len(self.dataloader.dataset) / self.dataloader.batch_size
+        # print('Tau {}: {}, {}, {}, {:.3f}'.format(self.client_id, self.epochs_to_perform, len(self.dataloader.dataset), self.dataloader.batch_size, tau))
+        return tau
 
     @model.setter
     def model(self, model):
@@ -58,7 +67,7 @@ class FederatedClient(Client):
         # Decide local epochs to use.
         epochs_to_perform = self.local_epoch
         if self.should_use_heterogeneous_E:
-            epochs_to_perform = random.randint(self.local_epoch_min, self.local_epoch_max)
+            epochs_to_perform = np.random.randint(self.local_epoch_min, self.local_epoch_max)
         self.epochs_to_perform = epochs_to_perform
 
         losses = []

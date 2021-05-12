@@ -1,6 +1,6 @@
 defaults:
   - model: mlp
-  - fed: fedavg
+  - fed: fednova
   - optim: sgd
 
 device: 'cpu'
@@ -9,6 +9,7 @@ n_round: 100
 K: 100
 C: 0.3
 B: 20
+dataset: 'mnist' # alternatively, 'mnist'
 
 client_heterogeneity:
   iid: True

@@ -9,6 +9,7 @@ n_round: 200
 K: 30
 C: 1.0
 B: 20
+dataset: 'synthetic' # alternatively, 'mnist'
 
 client_heterogeneity:
   iid: False

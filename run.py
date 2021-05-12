@@ -18,7 +18,7 @@ from utils import seed_everything
 from federated_schemes.federated import FederatedScheme
 
 
-#@hydra.main(config_path="./config/config.yaml", strict=True)
+# @hydra.main(config_path="./config/config.yaml", strict=True)
 @hydra.main(config_path="./config/config_lr.yaml", strict=True)
 def main(cfg: DictConfig):
     os.chdir(cfg.root)
@@ -43,7 +43,7 @@ def main(cfg: DictConfig):
                         batchsize=cfg.B,
                         fraction=cfg.C,
                         iid=cfg.client_heterogeneity.iid,
-                        dataset='synthetic',
+                        dataset=cfg.dataset,
                         device=cfg.device,
                         should_use_heterogeneous_E=cfg.client_heterogeneity.should_use_heterogeneous_E,
                         local_epoch=cfg.client_heterogeneity.E,
