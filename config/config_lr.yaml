@@ -1,19 +1,19 @@
 defaults:
   - model: lr
-  - fed: fedavg
+  - fed: fednova
   - optim: sgd
 
 device: 'cpu'
 
 n_round: 200
 K: 30
-C: .3
-B: 50
+C: 1.0
+B: 20
 
 client_heterogeneity:
   iid: False
   should_use_heterogeneous_data: True
-  should_use_heterogeneous_E: False
+  should_use_heterogeneous_E: True
   # If should_use_heterogeneous_E == True, we'll use E_min and E_max.
   E_min: 1
   E_max: 5

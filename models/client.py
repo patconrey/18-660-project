@@ -34,53 +34,70 @@ class Client:
     def model(self, model):
         self.__model = model
 
-    def client_update(self, optimizer, optimizer_args, loss_fn):
+    def client_update(self, optimizer, optimizer_args, loss_fn, communication_round=0):
         raise NotImplementedError
 
     def __len__(self):
         return len(self.dataloader.dataset)
 
 
-class FedAvgClient(Client):
-    def client_update(self, optimizer, optimizer_args, loss_fn):
+class FederatedClient(Client):
+    def client_update(self, optimizer, optimizer_args, loss_fn, communication_round=0):
         self.model.train()
         self.model.to(self.device)
-        optimizer = optimizer(self.model.parameters(), **optimizer_args)
         
+        # Decay learning rate.
+        learning_rate = optimizer_args.lr
+        if communication_round >= 100:
+            learning_rate /= 2
+        if communication_round >= 150:
+            learning_rate /= 2
+
+        optimizer = optimizer(self.model.parameters(), learning_rate)
+        
+        # Decide local epochs to use.
         epochs_to_perform = self.local_epoch
-        
         if self.should_use_heterogeneous_E:
             epochs_to_perform = random.randint(self.local_epoch_min, self.local_epoch_max)
-
         self.epochs_to_perform = epochs_to_perform
-        #print("CLIENT %d" % self.client_id)
+
+        losses = []
+        number_correct = []
         for i in range(epochs_to_perform):
-            #print("EPOCH %d" % i)
             for img, target in self.dataloader:
+                optimizer.zero_grad()
+
                 img = img.to(self.device)
                 target = target.to(self.device)
-                optimizer.zero_grad()
+
                 logits = self.model(img)
                 loss = loss_fn(logits, target)
-                #print(loss.item())
+
+                losses.append(loss.item())
+                pred = logits.argmax(dim=1, keepdim=True)
+                number_correct.append(pred.eq(target.view_as(pred)).sum().item())
+                
                 loss.backward()
                 optimizer.step()
 
+        self.most_recent_avg_loss = np.mean(losses)
+        self.most_recent_num_correct = np.mean(number_correct)
+
         # evaluate loss and accurary after training finished (for tracking total training loss/accuracy)
-        self.model.eval()
-        train_loss = 0
-        train_correct = 0
-        for img, target in self.dataloader:
-            img = img.to(self.device)
-            target = target.to(self.device)
-            optimizer.zero_grad()
-            logits = self.model(img)
-            loss = loss_fn(logits, target)
-            train_loss += loss.item()
-            pred = logits.argmax(dim=1, keepdim=True)
-            train_correct += pred.eq(target.view_as(pred)).sum().item()
+        # self.model.eval()
+        # train_loss = 0
+        # train_correct = 0
+        # for img, target in self.dataloader:
+        #     img = img.to(self.device)
+        #     target = target.to(self.device)
+        #     optimizer.zero_grad()
+        #     logits = self.model(img)
+        #     loss = loss_fn(logits, target)
+        #     train_loss += loss.item()
+        #     pred = logits.argmax(dim=1, keepdim=True)
+        #     train_correct += pred.eq(target.view_as(pred)).sum().item()
         
-        self.most_recent_avg_loss = train_loss/len(self.dataloader)
-        self.most_recent_num_correct = train_correct
+        # self.most_recent_avg_loss = train_loss/len(self.dataloader)
+        # self.most_recent_num_correct = train_correct
 
         self.model.to("cpu")

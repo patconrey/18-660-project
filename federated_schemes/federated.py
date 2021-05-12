@@ -1,4 +1,5 @@
 import logging
+
 log = logging.getLogger(__name__)
 
 import random
@@ -7,15 +8,17 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.nn import CrossEntropyLoss
 
-from models.client import FedAvgClient as Client
-from models.server import FedAvgCenterServer as CenterServer
+from models.client import *
+from models.server import *
 
 from datasets.mnist import MnistLocalDataset
 from datasets.generate_synthetic_data import create_synthetic_lr_datasets
 from utils.data import get_mnist_data
 
+import matplotlib.pyplot as plt
 
-class FedAvg():
+
+class FederatedScheme():
     def __init__(self,
                  model,
                  optimizer,
@@ -30,8 +33,13 @@ class FedAvg():
                  local_epoch=1,
                  local_epoch_min=1,
                  local_epoch_max=5,
+                 federated_type='fedavg',
                  device="cpu",
                  writer=None):
+
+        assert federated_type in ['fedavg', 'fednova'], 'Unsupported federated_type {}'.format(federated_type)
+        self.federated_type = federated_type
+
         self.optimizer = optimizer
         self.optimizer_args = optimizer_args
 
@@ -63,7 +71,7 @@ class FedAvg():
                             ]
 
         self.clients = [
-            Client(k,
+            FederatedClient(k,
                 local_dataloaders[k],
                 should_use_heterogeneous_E=should_use_heterogeneous_E,
                 local_epoch=local_epoch,
@@ -79,8 +87,14 @@ class FedAvg():
         test_dataloader = DataLoader(test_dataset,
                                      num_workers=0,
                                      batch_size=batchsize)
-        self.center_server = CenterServer(model, test_dataloader, device)
+                                    
+        self.center_server = None
+        if self.federated_type == 'fedavg':
+            self.center_server = FedAvgCenterServer(model, test_dataloader, device)
+        elif self.federated_type == 'fednova':
+            self.center_server = FedNovaCenterServer(model, test_dataloader, device)
 
+        print('Server:', self.center_server)
         self.loss_fn = CrossEntropyLoss()
 
         self.writer = writer
@@ -97,16 +111,29 @@ class FedAvg():
             self.train_step()
             self.validation_step()
 
+        fig, axs = plt.subplots(2, 2)
+        axs[0][0].plot(self.result['loss'])
+        axs[0][0].set_title('Validation Loss')
+        axs[0][1].plot(self.result['accuracy'])
+        axs[0][1].set_title('Validation Accuracy')
+        axs[1][0].plot(self.result['train_loss'])
+        axs[1][0].set_title('Training Loss')
+        axs[1][1].plot(self.result['train_accuracy'])
+        axs[1][1].set_title('Training Accuracy')
+        plt.show()
+
     def train_step(self):
         self.send_model()
+       
         n_sample = max(int(self.fraction * self.num_clients), 1)
         # we can choose to sample with our without replacement - randint replaces, choice does not
-        #sample_set = np.random.randint(0, self.num_clients, n_sample)
         sample_set = np.random.choice(np.arange(self.num_clients), size=n_sample, replace=False)
+        
         # Scaling factor is based on Footnote 1 of Wang et al:
         # "weighted averaging local changes, where the weight of client 
         #  i is re-scaled to (p_i m)/q." m is total samples, q is # clients samples, m is total # samples
         scaling_factor = self.num_clients/n_sample
+        
         train_loss = 0
         train_correct = 0
         num_samples_train = np.sum([len(self.clients[k]) for k in sample_set])
@@ -114,7 +141,8 @@ class FedAvg():
             self.clients[k].client_update(
                 self.optimizer,
                 self.optimizer_args,
-                self.loss_fn)
+                self.loss_fn,
+                communication_round=self._round)
             train_loss += self.clients[k].most_recent_avg_loss*len(self.clients[k])
             train_correct += self.clients[k].most_recent_num_correct
         

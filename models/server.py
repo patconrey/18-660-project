@@ -65,7 +65,6 @@ class FedNovaCenterServer(CenterServer):
         super().__init__(model, dataloader, device)
 
     def aggregation(self, clients, aggregation_weights, sample_set, scaling_factor):
-        # Initialize dictionary
         update_state = OrderedDict()
         for key in self.model.state_dict().keys():
             update_state[key] = 0
@@ -84,8 +83,8 @@ class FedNovaCenterServer(CenterServer):
                 update_state[key] += local_state[key] * aggregation_weights[k] / client.tau * scaling_factor
 
         for key in self.model.state_dict().keys():
-            update_state[key] *= - tau_eff
-                
+            update_state[key] *= tau_eff
+
         self.model.load_state_dict(update_state)
 
     def validation(self, loss_fn):
