@@ -1,0 +1,37 @@
+defaults:
+  - model: lr
+  - fed: fedavg
+  - optim: sgd
+
+device: 'cpu'
+
+dataset: 'synthetic'
+
+n_round: 200
+K: 30
+C: 0.3
+B: 20
+
+client_heterogeneity:
+  iid: False
+  should_use_heterogeneous_data: True
+  should_use_heterogeneous_E: True
+  # If should_use_heterogeneous_E == True, we'll use E_min and E_max.
+  E_min: 1
+  E_max: 5
+  # If should_use_heterogeneous_E == False, we'll just use E for each client.
+  E: 5
+
+seed: 2020
+
+root: ${env:PWD}
+savedir: ${env:PWD}/output/${fed.type}/${now:%Y-%m-%d_%H-%M-%S}
+
+hydra:
+  run:
+    dir: ${env:PWD}/output/${fed.type}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    # Output directory for sweep runs
+    dir: ${env:PWD}/output/${fed.type}/${now:%Y-%m-%d_%H-%M-%S}/${hydra.job.name}
+    # Output sub directory for sweep runs.
+    subdir: ${hydra.job.num}_${hydra.job.id}

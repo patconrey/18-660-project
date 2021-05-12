@@ -1,0 +1,4 @@
+model:
+  type: vgg
+  classname: VGG_32x32
+  args:
