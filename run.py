@@ -11,8 +11,8 @@ from omegaconf import DictConfig
 from torch.optim import *
 
 from models.mlp import MLP
-# from models.vgg import VGG
-from bakari.vgg_custom import VGG_32x32
+from models.lr import LR
+from models.vgg import VGG_32x32
 from utils import *
 from utils import seed_everything
 
@@ -20,7 +20,8 @@ from federated_schemes.federated import FederatedScheme
 
 
 #@hydra.main(config_path="./config/config.yaml", strict=True)
-@hydra.main(config_path="./config/config_lr.yaml", strict=True)
+# @hydra.main(config_path="./config/config_lr.yaml", strict=True)
+@hydra.main(config_path="./config/config_vgg.yaml", strict=True)
 def main(cfg: DictConfig):
     os.chdir(cfg.root)
     seed_everything(cfg.seed)
@@ -32,7 +33,7 @@ def main(cfg: DictConfig):
             cfg.model.args['n_features'] = 784
         model = LR(**cfg.model.args)
     elif cfg.model['type'] == 'vgg':
-        raise NotImplementedError()
+        model = VGG_32x32()
     else:
         raise Exception("Unrecognized model argument")
 
@@ -55,10 +56,10 @@ def main(cfg: DictConfig):
                         should_use_heterogeneous_data=cfg.client_heterogeneity.should_use_heterogeneous_data,
                         writer=writer)
 
-    scheme.fit(cfg.n_round)
+    # scheme.fit(cfg.n_round)
 
-    with open(os.path.join(cfg.savedir, "result.pkl"), "wb") as f:
-        pickle.dump(scheme.result, f)
+    # with open(os.path.join(cfg.savedir, "result.pkl"), "wb") as f:
+    #     pickle.dump(scheme.result, f)
 
 
 if __name__ == "__main__":

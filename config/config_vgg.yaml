@@ -5,7 +5,7 @@ defaults:
 
 device: 'cpu'
 
-dataset: 'synthetic'
+dataset: 'cifar'
 
 n_round: 200
 K: 30
