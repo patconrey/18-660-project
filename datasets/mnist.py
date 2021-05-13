@@ -1,3 +1,4 @@
+import numpy as np
 import PIL.Image as Image
 import torch
 from utils.data import get_mnist_data
@@ -13,16 +14,18 @@ class MnistLocalDataset(Dataset):
         self.client_id = client_id
         self.transform = transforms.Compose([
             transforms.ToTensor(),
+            # Images must be at least 224x224 for VGG
+            transforms.Pad(padding=[2,], fill=0, padding_mode='constant'),
             transforms.Normalize((0.1307, ), (0.3081, ))
         ])
         self.model = model
 
     def __getitem__(self, index):
-        if self.model == 'mlp':
-            img = Image.fromarray(self.images[index].reshape(28, 28), mode='L')
-            img = self.transform(img)
-        else:
-            img = self.images[index] / 255.0
+        # VGG requires images with 3 channels
+        arg = np.dstack([self.images[index].reshape(28, 28) for _ in range(3)])
+        img = Image.fromarray(arg, mode='RGB')
+
+        img = self.transform(img)
         target = self.labels[index]
         return img, target
 
