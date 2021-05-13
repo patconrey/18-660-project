@@ -15,7 +15,9 @@ from datasets.mnist import create_mnist_datasets
 from datasets.generate_synthetic_data import create_synthetic_lr_datasets
 from datasets.generate_cifar_data import create_cifar_datasets
 
-import matplotlib.pyplot as plt
+from utils import get_experiment_id_from_cfg
+
+# import matplotlib.pyplot as plt
 
 
 class FederatedScheme():
@@ -35,13 +37,16 @@ class FederatedScheme():
                  local_epoch_max=5,
                  federated_type='fedavg',
                  device="cpu",
-                 writer=None):
+                 writer=None,
+                 cfg=None):
 
         assert federated_type in ['fedavg', 'fednova'], 'Unsupported federated_type {}'.format(federated_type)
         self.federated_type = federated_type
 
         self.optimizer = optimizer
         self.optimizer_args = optimizer_args
+
+        self.experiment_id = get_experiment_id_from_cfg(cfg)
 
         self.num_clients = num_clients  # K
         self.batchsize = batchsize  # B
@@ -117,17 +122,19 @@ class FederatedScheme():
             self.train_step()
             self.send_model()
             self.validation_step()
+            self.save_results(self.experiment_id)
 
-        fig, axs = plt.subplots(2, 2)
-        axs[0][0].plot(self.result['loss'])
-        axs[0][0].set_title('Validation Loss')
-        axs[0][1].plot(self.result['accuracy'])
-        axs[0][1].set_title('Validation Accuracy')
-        axs[1][0].plot(self.result['train_loss'])
-        axs[1][0].set_title('Training Loss')
-        axs[1][1].plot(self.result['train_accuracy'])
-        axs[1][1].set_title('Training Accuracy')
-        plt.show()
+
+        # fig, axs = plt.subplots(2, 2)
+        # axs[0][0].plot(self.result['loss'])
+        # axs[0][0].set_title('Validation Loss')
+        # axs[0][1].plot(self.result['accuracy'])
+        # axs[0][1].set_title('Validation Accuracy')
+        # axs[1][0].plot(self.result['train_loss'])
+        # axs[1][0].set_title('Training Loss')
+        # axs[1][1].plot(self.result['train_accuracy'])
+        # axs[1][1].set_title('Training Accuracy')
+        # plt.show()
 
     def train_step(self):
         self.send_model()

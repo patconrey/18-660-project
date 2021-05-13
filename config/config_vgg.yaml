@@ -1,14 +1,14 @@
 defaults:
   - model: vgg
-  - fed: fedavg
+  - fed: fednova
   - optim: sgd
 
-device: 'cpu'
+device: 'gpu'
 
 dataset: 'cifar'
 
-n_round: 200
-K: 2
+n_round: 100
+K: 16
 C: 1.0
 B: 32
 
@@ -17,7 +17,7 @@ client_heterogeneity:
   should_use_heterogeneous_data: True
   should_use_heterogeneous_E: True
   # If should_use_heterogeneous_E == True, we'll use E_min and E_max.
-  E_min: 1
+  E_min: 2
   E_max: 5
   # If should_use_heterogeneous_E == False, we'll just use E for each client.
   E: 5

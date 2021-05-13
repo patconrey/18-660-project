@@ -2,4 +2,4 @@ optim:
   type: sgd
   classname: SGD
   args:
-    lr: 0.01
+    lr: 0.02

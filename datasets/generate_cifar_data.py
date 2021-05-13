@@ -1,7 +1,6 @@
 import numpy as np
 from numpy.random import RandomState, SeedSequence
 import torch
-from matplotlib import pyplot as plt
 from torch.utils.data import Dataset
 from torchvision.datasets import CIFAR10 as CifarDataset
 from torchvision.transforms import transforms

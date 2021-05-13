@@ -20,8 +20,8 @@ from federated_schemes.federated import FederatedScheme
 
 
 #@hydra.main(config_path="./config/config.yaml", strict=True)
-@hydra.main(config_path="./config/config_lr.yaml", strict=True)
-# @hydra.main(config_path="./config/config_vgg.yaml", strict=True)
+# @hydra.main(config_path="./config/config_lr.yaml", strict=True)
+@hydra.main(config_path="./config/config_vgg.yaml", strict=True)
 def main(cfg: DictConfig):
     os.chdir(cfg.root)
     seed_everything(cfg.seed)
@@ -56,11 +56,12 @@ def main(cfg: DictConfig):
                         local_epoch_min=cfg.client_heterogeneity.E_min,
                         local_epoch_max=cfg.client_heterogeneity.E_max,
                         should_use_heterogeneous_data=cfg.client_heterogeneity.should_use_heterogeneous_data,
-                        writer=writer)
+                        writer=writer,
+                        cfg=cfg)
 
     scheme.fit(cfg.n_round)
 
-    scheme.save_results(experiment_id)
+    
 
 
 if __name__ == "__main__":
