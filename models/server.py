@@ -76,7 +76,7 @@ class FedAvgCenterServer(CenterServer):
                 pred = logits.argmax(dim=1, keepdim=True)
                 correct += pred.eq(label.view_as(pred)).sum().item()
 
-        self.model.to("cpu")
+        self.model.to(self.device)
         test_loss = test_loss / len(self.dataloader)
         accuracy = 100. * correct / len(self.dataloader.dataset)
 
@@ -128,7 +128,7 @@ class FedNovaCenterServer(CenterServer):
                 pred = logits.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
-        self.model.to("cpu")
+        self.model.to(self.device)
         test_loss = test_loss / len(self.dataloader)
         accuracy = 100. * correct / len(self.dataloader.dataset)
 

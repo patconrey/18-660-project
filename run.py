@@ -39,6 +39,8 @@ def main(cfg: DictConfig):
 
     writer = SummaryWriter(log_dir=os.path.join(cfg.savedir, "tf"))
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     scheme = FederatedScheme(model=model,
                         optimizer=SGD,
                         optimizer_args=cfg.optim.args,
@@ -48,7 +50,7 @@ def main(cfg: DictConfig):
                         fraction=cfg.C,
                         iid=cfg.client_heterogeneity.iid,
                         dataset=cfg.dataset,
-                        device=cfg.device,
+                        device=device,
                         should_use_heterogeneous_E=cfg.client_heterogeneity.should_use_heterogeneous_E,
                         local_epoch=cfg.client_heterogeneity.E,
                         local_epoch_min=cfg.client_heterogeneity.E_min,

@@ -104,7 +104,7 @@ class FederatedClient(Client):
     def eval_train(self, loss_fn):
         # evaluate loss and accurary after training finished (for tracking training loss/accuracy)
         self.model.eval()
-        self.model.to("cpu")
+        self.model.to(self.device)
         loss = 0
         num_correct = 0
         with torch.no_grad():
