@@ -56,10 +56,10 @@ def main(cfg: DictConfig):
                         should_use_heterogeneous_data=cfg.client_heterogeneity.should_use_heterogeneous_data,
                         writer=writer)
 
-    # scheme.fit(cfg.n_round)
+    scheme.fit(cfg.n_round)
 
-    # with open(os.path.join(cfg.savedir, "result.pkl"), "wb") as f:
-    #     pickle.dump(scheme.result, f)
+    with open(os.path.join(cfg.savedir, "result.pkl"), "wb") as f:
+        pickle.dump(scheme.result, f)
 
 
 if __name__ == "__main__":

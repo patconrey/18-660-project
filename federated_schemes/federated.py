@@ -13,6 +13,7 @@ from models.server import *
 
 from datasets.mnist import create_mnist_datasets
 from datasets.generate_synthetic_data import create_synthetic_lr_datasets
+from datasets.generate_cifar_data import create_cifar_datasets
 
 import matplotlib.pyplot as plt
 
@@ -60,6 +61,12 @@ class FederatedScheme():
                     n_classes=10,
                     should_use_heterogeneous_data=should_use_heterogeneous_data,
                     iid=iid)
+        elif dataset == 'cifar':
+            (local_datasets, test_dataset) = create_cifar_datasets(
+                './data/',
+                num_clients,
+                should_use_heterogeneous_data=should_use_heterogeneous_data,
+                iid=iid)
         else:
             raise Exception("Unrecognized dataset argument")
         local_dataloaders = [DataLoader(dataset,

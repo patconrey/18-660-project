@@ -181,6 +181,12 @@ def create_datasets_from_mapping(data_root, mapping):
     return (local_datasets, test_dataset)
 
 
+def create_cifar_datasets(data_root, num_client, should_use_heterogeneous_data=True, iid=True):
+    data_indices_for_clients = partition_data(data_root, num_client, should_use_heterogeneous_data=should_use_heterogeneous_data, iid=iid)
+    local_datasets, test_set = create_datasets_from_mapping(data_root, data_indices_for_clients)
+
+    return (local_datasets, test_set)
+
         
 if __name__ == "__main__":
     data_indices_for_clients = partition_data('../data/', 30, should_use_heterogeneous_data=True, iid=True)

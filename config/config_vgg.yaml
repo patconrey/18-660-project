@@ -8,12 +8,12 @@ device: 'cpu'
 dataset: 'cifar'
 
 n_round: 200
-K: 30
-C: 0.3
-B: 20
+K: 16
+C: 1.0
+B: 32
 
 client_heterogeneity:
-  iid: False
+  iid: True
   should_use_heterogeneous_data: True
   should_use_heterogeneous_E: True
   # If should_use_heterogeneous_E == True, we'll use E_min and E_max.
