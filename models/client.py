@@ -1,3 +1,11 @@
+"""
+This code was modified heavily from code found here: https://github.com/katsura-jp/fedavg.pytorch.
+We use their basic infrastructure of a Client class that trains its own model. We decided that
+this is the most realistic representation of how the federated learning schemes would be implemented
+in the wild. However, we have to modify their code quite a bit in order to handle the variety of
+experiments we perform.
+"""
+
 import random
 from collections import OrderedDict
 import numpy as np
@@ -30,7 +38,6 @@ class Client:
     @property
     def tau(self):
         return np.floor(self.epochs_to_perform * len(self.dataloader.dataset) / self.dataloader.batch_size)
-        #return self.epochs_to_perform * np.ceil(len(self.dataloader.dataset) / self.dataloader.batch_size)
 
     @model.setter
     def model(self, model):

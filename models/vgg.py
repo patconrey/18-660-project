@@ -1,3 +1,9 @@
+"""
+This code is a re-implementation of a standard VGG model with modifications
+to handle the smaller-than-expected size of CIFAR data. It is based off of
+code found here: https://github.com/JYWa/FedNova.
+"""
+
 import numpy as np
 import torch.nn as nn
 

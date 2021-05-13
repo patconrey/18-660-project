@@ -1,3 +1,7 @@
+"""
+This code is based on work found here: https://github.com/katsura-jp/fedavg.pytorch.
+"""
+
 import sys
 from functools import wraps
 import logging

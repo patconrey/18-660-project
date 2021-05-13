@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-# class definition for multiclass logistic regression
-
 class LR(nn.Module):
     def __init__(self, n_features=60, n_classes=10):
         super().__init__()

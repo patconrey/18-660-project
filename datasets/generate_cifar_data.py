@@ -1,17 +1,14 @@
+"""
+Much of dataset-generation code was taken from https://github.com/IBM/FedMA/.
+The linked project is a citaiton of the FedNova paper, which also borrows
+its dataset-generation scheme.
+"""
+
 import numpy as np
-from numpy.random import RandomState, SeedSequence
-import torch
 from torch.utils.data import Dataset
 from torchvision.datasets import CIFAR10 as CifarDataset
 from torchvision.transforms import transforms
-import glob
-import os
-import pickle
 
-"""
-CIFAR-10 Dataset code taken from 
-https://github.com/IBM/FedMA/
-"""
 
 class SyntheticLocalDataset(object):
     def __init__(self, features, labels, client_id):

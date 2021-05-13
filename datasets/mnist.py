@@ -1,3 +1,10 @@
+"""
+This code is based on work found here: https://github.com/katsura-jp/fedavg.pytorch.
+It's been heavily modified so that we were able to test different types of size
+distributions across clients. The code here uses a power law distribution to
+decide the relative sizes of the datasets at clients.
+"""
+
 import numpy as np
 import PIL.Image as Image
 import torch

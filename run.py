@@ -10,7 +10,6 @@ import hydra
 from omegaconf import DictConfig
 from torch.optim import *
 
-from models.mlp import MLP
 from models.lr import LR
 from models.vgg import VGG_32x32
 from utils import *
@@ -26,9 +25,7 @@ def main(cfg: DictConfig):
     os.chdir(cfg.root)
     seed_everything(cfg.seed)
     log.info("\n" + cfg.pretty())
-    if cfg.model['type'] == 'mlp':
-        model = MLP(**cfg.model.args)
-    elif cfg.model['type'] == 'lr':
+    if cfg.model['type'] == 'lr':
         if cfg.dataset == 'mnist':
             cfg.model.args['n_features'] = 784
         model = LR(**cfg.model.args)

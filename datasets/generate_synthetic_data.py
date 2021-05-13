@@ -1,16 +1,16 @@
-import numpy as np
-from numpy.random import RandomState, SeedSequence
-import torch
-from matplotlib import pyplot as plt
+"""
+Generate synthetic data for federated learning using method
+described in:
+  Tian Li, Anit Kumar Sahu, Manzil Zaheer, Maziar Sanjabi, 
+  Ameet Talwalkar, and Virginia Smith. "Federated optimization
+  in heterogeneous networks". In Conference on Machine Learning 
+  and Systems, 2020. https://arxiv.org/pdf/1812.06127.pdf
+Approach to create synthetic data discribed in section 5.1
+and Appendix C
+"""
 
-# Generate synthetic data for federated learning using method
-# described in:
-#   Tian Li, Anit Kumar Sahu, Manzil Zaheer, Maziar Sanjabi, 
-#   Ameet Talwalkar, and Virginia Smith. "Federated optimization
-#   in heterogeneous networks". In Conference on Machine Learning 
-#   and Systems, 2020. https://arxiv.org/pdf/1812.06127.pdf
-# Approach to create synthetic data discribed in section 5.1
-# and Appendix C
+import numpy as np
+from matplotlib import pyplot as plt
 
 def softmax(x):
     return np.exp(x)/np.sum(np.exp(x), axis=0)

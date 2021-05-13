@@ -1,3 +1,10 @@
+"""
+This code was modified heavily from code found here: https://github.com/katsura-jp/fedavg.pytorch.
+We use their basic infrastructure of a Server class that handles aggregating the weights of the
+clients. However, we have to modify their code quite a bit in order to handle the variety of
+experiments we perform.
+"""
+
 import numpy as np
 import copy
 from collections import OrderedDict
@@ -32,9 +39,6 @@ class CenterServer:
         return train_loss, train_accuracy
 
 
-        
-
- 
 class FedAvgCenterServer(CenterServer):
     def __init__(self, model, dataloader, device="cpu"):
         super().__init__(model, dataloader, device)
@@ -46,13 +50,7 @@ class FedAvgCenterServer(CenterServer):
         update_state = OrderedDict()
         for key in self.model.state_dict().keys():
             update_state[key] = 0
-
-        # for k, client in enumerate(trained_clients):
-        #     local_state = client.model.state_dict()
-        #     for key in self.model.state_dict().keys():
-        #         update_state[key] += local_state[key] * trained_clients_aggregation_weights[k] * scaling_factor
-
-        # self.model.load_state_dict(update_state)
+            
         for k, client in enumerate(trained_clients):
             for key in self.model.state_dict().keys():
                 update_state[key] += client.state_adjustment[key] * trained_clients_aggregation_weights[k] * scaling_factor
@@ -100,11 +98,7 @@ class FedNovaCenterServer(CenterServer):
         pks = np.array([len(client.dataloader.dataset) for client in trained_clients])
         pks = pks / pks.sum()
         tau_eff = taus @ pks
-        
-        # for k, client in enumerate(trained_clients):
-        #     local_state = client.model.state_dict()
-        #     for key in self.model.state_dict().keys():
-        #         update_state[key] += local_state[key] * trained_clients_aggregation_weights[k] / client.tau * scaling_factor
+
         for k, client in enumerate(trained_clients):
             for key in self.model.state_dict().keys():
                 update_state[key] += client.state_adjustment[key] * trained_clients_aggregation_weights[k] / client.tau * scaling_factor

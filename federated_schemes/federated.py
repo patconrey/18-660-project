@@ -1,9 +1,13 @@
+"""
+This code is based on work found here: https://github.com/katsura-jp/fedavg.pytorch.
+It's been heavily modified to handle generalized datasets, generalized federated
+learning schemes, and additional models.
+"""
+
 import logging
 
 log = logging.getLogger(__name__)
 
-import random
-import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.nn import CrossEntropyLoss
@@ -18,7 +22,6 @@ from datasets.generate_cifar_data import create_cifar_datasets
 from utils import get_experiment_id_from_cfg
 
 # import matplotlib.pyplot as plt
-
 
 class FederatedScheme():
     def __init__(self,
@@ -104,7 +107,6 @@ class FederatedScheme():
         elif self.federated_type == 'fednova':
             self.center_server = FedNovaCenterServer(model, test_dataloader, device)
 
-        print('Server:', self.center_server)
         self.loss_fn = CrossEntropyLoss()
 
         self.writer = writer
@@ -123,7 +125,6 @@ class FederatedScheme():
             self.send_model()
             self.validation_step()
             self.save_results(self.experiment_id)
-
 
         # fig, axs = plt.subplots(2, 2)
         # axs[0][0].plot(self.result['loss'])
