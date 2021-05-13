@@ -20,8 +20,8 @@ from federated_schemes.federated import FederatedScheme
 
 
 #@hydra.main(config_path="./config/config.yaml", strict=True)
-# @hydra.main(config_path="./config/config_lr.yaml", strict=True)
-@hydra.main(config_path="./config/config_vgg.yaml", strict=True)
+@hydra.main(config_path="./config/config_lr.yaml", strict=True)
+# @hydra.main(config_path="./config/config_vgg.yaml", strict=True)
 def main(cfg: DictConfig):
     os.chdir(cfg.root)
     seed_everything(cfg.seed)
@@ -38,7 +38,7 @@ def main(cfg: DictConfig):
         raise Exception("Unrecognized model argument")
 
     writer = SummaryWriter(log_dir=os.path.join(cfg.savedir, "tf"))
-
+    experiment_id = get_experiment_id_from_cfg(cfg)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     scheme = FederatedScheme(model=model,
@@ -60,8 +60,7 @@ def main(cfg: DictConfig):
 
     scheme.fit(cfg.n_round)
 
-    with open(os.path.join(cfg.savedir, "result.pkl"), "wb") as f:
-        pickle.dump(scheme.result, f)
+    scheme.save_results(experiment_id)
 
 
 if __name__ == "__main__":

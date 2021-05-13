@@ -58,3 +58,20 @@ def tail_recursive(func):
             return self_CONTINUE
 
     return _tail_recursive
+
+def get_experiment_id_from_cfg(cfg):
+    dataset=cfg.dataset
+    model=cfg.model.type
+    scheme=cfg.fed.type
+    heteroE = cfg.client_heterogeneity.should_use_heterogeneous_E
+    heteroD = cfg.client_heterogeneity.should_use_heterogeneous_data
+    iid = cfg.client_heterogeneity.iid
+
+    folder_to_save = './output/results/{}'.format(model)
+
+    if not os.path.exists(folder_to_save):
+        os.makedirs(folder_to_save, exist_ok=True)
+
+    id = '{}/model={}_scheme={}_heteroE={}_heteroD={}_iid={}_dataset={}'.format(folder_to_save, model, scheme, heteroE, heteroD, iid, dataset)
+
+    return id

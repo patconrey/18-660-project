@@ -181,5 +181,8 @@ class FederatedScheme():
         self.result['loss'].append(test_loss)
         self.result['accuracy'].append(test_accuracy)
 
-
     
+    def save_results(self, experiment_identifier):
+        for key_to_save in self.result:
+            path_to_save = experiment_identifier + '_' + key_to_save + '.npy'
+            np.save(path_to_save, self.result[key_to_save])
