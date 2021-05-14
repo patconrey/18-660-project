@@ -184,7 +184,7 @@ class FederatedScheme():
             self.writer.add_scalar("val/loss", test_loss, self._round)
             self.writer.add_scalar("val/accuracy", test_accuracy, self._round)
 
-        self.result['train_loss'].append(test_loss)
+        self.result['train_loss'].append(train_loss)
         self.result['train_accuracy'].append(train_accuracy)
         self.result['loss'].append(test_loss)
         self.result['accuracy'].append(test_accuracy)
