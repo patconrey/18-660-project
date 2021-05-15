@@ -75,7 +75,7 @@ class FedAvgCenterServer(CenterServer):
                 correct += pred.eq(label.view_as(pred)).sum().item()
 
         self.model.to(self.device)
-        test_loss = test_loss / len(self.dataloader)
+        test_loss = test_loss / len(self.dataloader.dataset)
         accuracy = 100. * correct / len(self.dataloader.dataset)
 
         return test_loss, accuracy
@@ -123,7 +123,7 @@ class FedNovaCenterServer(CenterServer):
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
         self.model.to(self.device)
-        test_loss = test_loss / len(self.dataloader)
+        test_loss = test_loss / len(self.dataloader.dataset)
         accuracy = 100. * correct / len(self.dataloader.dataset)
 
         return test_loss, accuracy

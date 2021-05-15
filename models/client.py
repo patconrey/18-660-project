@@ -123,7 +123,7 @@ class FederatedClient(Client):
                 pred = logits.argmax(dim=1, keepdim=True)
                 num_correct += pred.eq(target.view_as(pred)).sum().item()
         
-        train_loss = loss/len(self.dataloader)
+        train_loss = loss/len(self.dataloader.dataset)
         train_accuracy = (num_correct/len(self.dataloader.dataset))*100
 
         return train_loss, train_accuracy
